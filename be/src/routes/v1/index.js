@@ -1,3 +1,4 @@
 const route = require("express").Router();
+const AuthRoutes = require("./auth.routes");
 
-route.post("/login", ()=> {})
+route.use("/v1/auth", AuthRoutes);
