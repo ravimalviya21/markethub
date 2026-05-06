@@ -17,6 +17,16 @@ const templates = {
         html: `<h1>Hi ${data.name}!</h1><p>Thanks for signing up. Start exploring products now.</p>`,
     }),
 
+    'email-verification': (data) => ({
+        subject: 'Verify your email address',
+        html: `
+      <h1>Hi ${data.name}</h1>
+      <p>Thanks for signing up. Click below to verify your email address:</p>
+      <a href="${data.verificationUrl}">Verify Email</a>
+      <p>If you didn't create an account, ignore this email.</p>
+    `,
+    }),
+
     'password-reset': (data) => ({
         subject: 'Reset your password',
         html: `

@@ -10,5 +10,5 @@ route.post("/reset-password", AuthController.resetPassword);
 // protected routes
 route.post("/logout", AuthController.logout);
 route.get("/get-me", AuthController.getMe);
-
+x
 module.exports = route;
