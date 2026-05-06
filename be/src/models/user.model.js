@@ -19,7 +19,7 @@ const UserModel = {
 
     async create({ email, name, hashedPassword, role = 'buyer' }) {
         const [result] = await pool.execute(
-            `INSERT INTO users (email, name, password_hash, role) VALUES (?, ?, ?, ?)`,
+            `INSERT INTO users (email, name, password, role) VALUES (?, ?, ?, ?)`,
             [email, name, hashedPassword, role]
         );
         return result.insertId;
@@ -27,7 +27,7 @@ const UserModel = {
 
     async updatePassword({ hashedPassword, id }) {
         const [result] = await pool.execute(
-            `UPDATE users SET password_hash = ? WHERE id = ?`,
+            `UPDATE users SET password = ? WHERE id = ?`,
             [hashedPassword, id]
         );
         return result.affectedRows;
@@ -35,7 +35,7 @@ const UserModel = {
 
     async markVerified(id) {
         const [result] = await pool.execute(
-            `UPDATE users SET email_verified = TRUE WHERE id = ?`,
+            `UPDATE users SET isEmailVerified = TRUE WHERE id = ?`,
             [id]
         );
         return result.affectedRows;

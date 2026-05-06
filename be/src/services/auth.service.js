@@ -1,4 +1,4 @@
-const AppError = require("../utils/errors");
+const { AppError } = require("../utils/errors");
 const UserModel = require("../models/user.model");
 const hash = require("../utils/hash");
 const tokenGen = require("../utils/tokens");
@@ -20,8 +20,8 @@ const AuthService = {
             hashedPassword,
         })
 
-        const accessToken = await tokenGen.generateAccessToken({ name, email, role });
-        const refreshToken = await tokenGen.generateRefreshToken({ name, email, role });
+        const accessToken = await tokenGen.generateAccessToken({ id: userId, name, email, role });
+        const refreshToken = await tokenGen.generateRefreshToken({ id: userId, name, email, role });
         const expiresAt = new Date(Date.now() + process.env.REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000);
 
         // proccess job queue
@@ -29,6 +29,7 @@ const AuthService = {
             connection: {
                 host: redis.options.host,
                 port: redis.options.port,
+                password: redis.options.password,
             },
         });
 

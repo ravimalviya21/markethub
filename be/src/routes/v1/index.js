@@ -3,4 +3,6 @@
 const route = require("express").Router();
 const AuthRoutes = require("./auth.routes");
 
-route.use("/v1/auth", AuthRoutes);
+route.use("/auth", AuthRoutes);
+
+module.exports = route;

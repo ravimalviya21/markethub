@@ -3,7 +3,7 @@ const pool = require('../config/db');
 const TokenModel = {
     async save({ userId, token, type, expiresAt }) {
         const [result] = await pool.execute(
-            `INSERT INTO verification_tokens (user_id, token, type, expires_at)
+            `INSERT INTO verification_tokens (user_id, token, type, expiresAt)
              VALUES (?, ?, ?, ?)`,
             [userId, token, type, expiresAt]
         );
@@ -12,7 +12,7 @@ const TokenModel = {
     async find({ token, type }) {
         const [rows] = await pool.execute(
             `SELECT * FROM verification_tokens
-             WHERE token = ? AND type = ? AND used = FALSE AND expires_at > NOW()
+             WHERE token = ? AND type = ? AND used = FALSE AND expiresAt > NOW()
              LIMIT 1`,
             [token, type]
         );
