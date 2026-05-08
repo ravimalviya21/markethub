@@ -4,6 +4,7 @@ const app = express();
 const dbHealth = require("./utils/dbHealth");
 const pool = require('./config/db');
 const routes = require("./routes/index");
+require("./worker/email.worker");
 const PORT = process.env.PORT || 3003;
 dbHealth();
 

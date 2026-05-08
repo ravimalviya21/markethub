@@ -1,13 +1,17 @@
 const { Worker } = require('bullmq');
 const nodemailer = require('nodemailer');
+require('dotenv').config();
 const redis = require("../config/redis");
+
+const smtpPort = Number(process.env.SMTP_PORT);
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
+    port: smtpPort,
+    secure: smtpPort === 465,
     auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        pass: process.env.SMTP_PASSWORD || process.env.SMTP_PASS,
     },
 });
 
@@ -44,7 +48,7 @@ const worker = new Worker('email', async (job) => {
     const { subject, html } = templates[template](data);
 
     await transporter.sendMail({
-        from: process.env.FROM_EMAIL,
+        from: process.env.FROM_EMAIL || process.env.SMTP_USER,
         to,
         subject,
         html,
@@ -52,7 +56,11 @@ const worker = new Worker('email', async (job) => {
 
     console.log(`Email sent: ${template} → ${to}`);
 }, {
-    connection: { host: redis.options.host, port: redis.options.port },
+    connection: {
+        host: redis.options.host,
+        port: redis.options.port,
+        password: redis.options.password,
+    },
     concurrency: 10,
 });
 

@@ -3,6 +3,7 @@ const AuthController = require("../../controllers/auth.controller");
 
 // login , register, forget password, resetPassord , refrsh token - public token
 route.post("/signup", AuthController.register);
+route.get("/verify-email", AuthController.verifyEmail);
 route.post("/login", AuthController.login);
 route.post("/forget-password", AuthController.forgetPassword);
 route.post("/reset-password", AuthController.resetPassword);

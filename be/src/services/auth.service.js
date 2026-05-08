@@ -38,7 +38,7 @@ const AuthService = {
             template: 'email-verification',
             data: {
                 name,
-                verificationUrl: `http://localhost:3000/api/v1/auth/verify-email?id=${userId}&token=${accessToken}`,
+                verificationUrl: `${process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 3003}`}/api/v1/auth/verify-email?id=${userId}&token=${accessToken}`,
             },
         });
 
