@@ -1,10 +1,10 @@
 const asyncHandler = require("../utils/asyncHandler");
 const AuthService = require("../services/auth.service");
+const STATUS_CODES = require("../contants/statusCode");
 const AuthController = {
     register: asyncHandler(async (req, res) => {
-        console.log("request>>>", req.body)
         const response = await AuthService.register(req.body);
-        res.status(201).json({
+        res.status(STATUS_CODES.CREATED).json({
             success: true,
             data: {
                 refreshToken: response.refreshToken,
@@ -14,7 +14,7 @@ const AuthController = {
     }),
     verifyEmail: asyncHandler(async (req, res) => {
         const response = await AuthService.verifyEmail({ id: req.query.id, token: req.query.token });
-        res.status(200).json({
+        res.status(STATUS_CODES.OK).json({
             success: true,
             data: {
                 message: "Email has been varified successfully"

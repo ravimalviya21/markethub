@@ -3,6 +3,7 @@ const UserModel = require("../models/user.model");
 const hash = require("../utils/hash");
 const tokenGen = require("../utils/tokens");
 const TokenModel = require("../models/token.model");
+const STATUS_CODES = require("../contants/statusCode");
 const { Queue } = require('bullmq');
 const redis = require('../config/redis');
 require("dotenv").config();
@@ -10,7 +11,7 @@ require("dotenv").config();
 const AuthService = {
     async register({ name, email, password, role }) {
         const isExist = await UserModel.findByEmail(email);
-        if (isExist) throw new AppError("User already exist", 409);
+        if (isExist) throw new AppError("User already exist", STATUS_CODES.CONFLICT);
 
         const hashedPassword = await hash.hashPassword(password);
 
@@ -49,11 +50,11 @@ const AuthService = {
     },
     async verifyEmail({ id, token }) {
         const isExist = await UserModel.findById(id);
-        if (!isExist) throw new AppError("User not exist", 404);
+        if (!isExist) throw new AppError("User not exist", STATUS_CODES.NOT_FOUND);
 
         const isTokenVerified = await tokenGen.verifyToken(token);
 
-        if (!isTokenVerified) throw new AppError("Unauthorized - token expired", 401)
+        if (!isTokenVerified) throw new AppError("Unauthorized - token expired", STATUS_CODES.UNAUTHORIZED)
 
         await UserModel.markVerified(id);
 
