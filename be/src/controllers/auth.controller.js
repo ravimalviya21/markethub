@@ -23,6 +23,23 @@ const AuthController = {
             }
         })
     }),
+    findOrCreateWithGoogle: asyncHandler(async (req, res) => {
+        const profile = req.user?.profile;
+        const { accessToken, refreshToken } = await AuthService.findOrCreateWithGoogle({ profile });
+        setRefreshCookie(res, refreshToken);
+
+        const redirectUrl = process.env.OAUTH_SUCCESS_REDIRECT;
+        if (redirectUrl) {
+            const url = new URL(redirectUrl);
+            url.searchParams.set("accessToken", accessToken);
+            return res.redirect(url.toString());
+        }
+
+        res.status(STATUS_CODES.OK).json({
+            success: true,
+            data: { accessToken },
+        });
+    }),
     login: asyncHandler(async (req, res) => {
         const response = await AuthService.login(req.body);
         setRefreshCookie(res, response.refreshToken);

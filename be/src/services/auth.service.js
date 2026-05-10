@@ -6,6 +6,7 @@ const TokenModel = require("../models/token.model");
 const STATUS_CODES = require("../contants/statusCode");
 const { Queue } = require('bullmq');
 const redis = require('../config/redis');
+const passport = require("../utils/passport");
 require("dotenv").config();
 
 const AuthService = {
@@ -76,7 +77,35 @@ const AuthService = {
 
         return { refreshToken, accessToken };
     },
+    async findOrCreateWithGoogle({ profile }) {
+        const email = profile?.emails?.[0]?.value;
+        if (!email) throw new AppError("Google account has no email", STATUS_CODES.BAD_REQUEST);
 
+        let user = await UserModel.findByEmail(email);
+
+        if (!user) {
+            const randomPassword = require("crypto").randomBytes(32).toString("hex");
+            const hashedPassword = await hash.hashPassword(randomPassword);
+            const userId = await UserModel.create({
+                email,
+                name: profile.displayName || email.split("@")[0],
+                hashedPassword,
+            });
+            await UserModel.markVerified(userId);
+            user = await UserModel.findById(userId);
+        } else if (!user.isEmailVerified) {
+            await UserModel.markVerified(user.id);
+        }
+
+        const payload = { id: user.id, name: user.name, email: user.email, role: user.role };
+        const accessToken = await tokenGen.generateAccessToken(payload);
+        const refreshToken = await tokenGen.generateRefreshToken(payload);
+        const expiresAt = new Date(Date.now() + process.env.REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000);
+
+        await TokenModel.save({ token: refreshToken, type: "refresh_token", userId: user.id, expiresAt });
+
+        return { accessToken, refreshToken, user };
+    },
     async refreshToken() {
 
     },
@@ -96,3 +125,4 @@ const AuthService = {
 }
 
 module.exports = AuthService;
+module.exports.passport = passport;

@@ -6,6 +6,7 @@ const app = express();
 const dbHealth = require("./utils/dbHealth");
 const pool = require('./config/db');
 const routes = require("./routes/index");
+const passport = require("./utils/passport");
 require("./worker/email.worker");
 const PORT = process.env.PORT || 3003;
 dbHealth();
@@ -18,6 +19,7 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
+app.use(passport.initialize());
 app.use("/api", routes);
 
 
