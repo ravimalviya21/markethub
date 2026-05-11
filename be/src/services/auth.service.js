@@ -111,11 +111,35 @@ const AuthService = {
     },
 
     // this will trigger an email
-    async forgetPassword() {
+    async forgetPassword({ email }) {
+        const isUserExist = await UserModel.findByEmail(email);
+        if (!isUserExist) throw new AppError("User not exist", STATUS_CODES.NOT_FOUND);
 
+        const { id } = isUserExist;
+
+        // proccess job queue
+        const emailQueue = new Queue('email', {
+            connection: {
+                host: redis.options.host,
+                port: redis.options.port,
+                password: redis.options.password,
+            },
+        });
+
+        await emailQueue.add('send-email', {
+            to: email,
+            template: 'forget-password',
+            data: {
+                name,
+                verificationUrl: `${process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 3003}`}/api/v1/auth/reset-password?id=${id}`,
+            },
+        });
+        return true
     },
-    async resetPassword() {
-
+    async resetPassword({ password, id }) {
+        const hashedPassword = hash.hashPassword(password);
+        const user = await UserModel.updatePassword({ hashedPassword, id });
+        return true;
     },
 
     async logout() {

@@ -2,6 +2,8 @@ const asyncHandler = require("../utils/asyncHandler");
 const AuthService = require("../services/auth.service");
 const STATUS_CODES = require("../contants/statusCode");
 const { setRefreshCookie, clearRefreshCookie, REFRESH_COOKIE_NAME } = require("../utils/cookies");
+const UserModel = require("../models/user.model");
+const hash = require("../utils/hash");
 
 const AuthController = {
     register: asyncHandler(async (req, res) => {
@@ -63,10 +65,22 @@ const AuthController = {
         });
     }),
     forgetPassword: asyncHandler(async (req, res) => {
-
+        const response = await AuthService.forgetPassword({ email: req?.body?.email });
+        res.status(STATUS_CODES.OK).json({
+            success: true,
+            data: {
+                message: "Reset passoword link sent"
+            }
+        })
     }),
     resetPassword: asyncHandler(async (req, res) => {
-
+        const response = await AuthService.resetPassword({ id: req.cookies?.['id'], password: req?.body?.password });
+        res.status(STATUS_CODES.OK).json({
+            success: true,
+            data: {
+                message: "Password update successfully! Please login again.."
+            }
+        })
     }),
     logout: asyncHandler(async (req, res) => {
         const token = req.cookies?.[REFRESH_COOKIE_NAME];
