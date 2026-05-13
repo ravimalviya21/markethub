@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { App, Typography } from "antd";
@@ -6,11 +7,13 @@ import { App, Typography } from "antd";
 import AuthLayout from "@/components/layout/AuthLayout";
 import { Input, Button, GoogleAuthButton } from "@/components/ui";
 import { signupSchema } from "@/validations/auth.validation";
+import { useSignup } from "../../src/services/auth.service";
 
 const { Text } = Typography;
 
 export default function SignupPage() {
   const { message } = App.useApp();
+  const router = useRouter();
   const {
     control,
     handleSubmit,
@@ -21,9 +24,25 @@ export default function SignupPage() {
     mode: "onTouched",
   });
 
+  const signUpMutation = useSignup();
+
   const onSubmit = async (values) => {
-    console.log("signup", values);
-    message.success("Account created (stub)");
+    try {
+      const response = await signUpMutation.mutateAsync(values);
+      if (response?.success) {
+        message.success("Account created. Please verify your email.");
+        router.push({
+          pathname: "/auth/verify-email-sent",
+          query: { email: values.email },
+        });
+      } else {
+        message.error(response?.message || "Something went wrong");
+      }
+    } catch (error) {
+      const errMsg =
+        error?.response?.data?.message || error?.message || "Signup failed";
+      message.error(errMsg);
+    }
   };
 
   const handleGoogleSignup = () => {

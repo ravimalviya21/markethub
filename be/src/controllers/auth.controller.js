@@ -18,12 +18,13 @@ const AuthController = {
     }),
     verifyEmail: asyncHandler(async (req, res) => {
         const response = await AuthService.verifyEmail({ id: req.query.id, token: req.query.token });
-        res.status(STATUS_CODES.OK).json({
-            success: true,
-            data: {
-                message: "Email has been varified successfully"
-            }
-        })
+        // res.status(STATUS_CODES.OK).json({
+        //     success: true,
+        //     data: {
+        //         message: "Email has been varified successfully"
+        //     }
+        // })
+        res.redirect(`${process.env.CORS_ORIGIN}/auth/verify-email-sent?email=${response?.email}`)
     }),
     findOrCreateWithGoogle: asyncHandler(async (req, res) => {
         const profile = req.user?.profile;

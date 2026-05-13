@@ -11,6 +11,7 @@ require("dotenv").config();
 
 const AuthService = {
     async register({ name, email, password, role }) {
+        console.log(name, email, passport, role)
         const isExist = await UserModel.findByEmail(email);
         if (isExist) throw new AppError("User already exist", STATUS_CODES.CONFLICT);
 
@@ -59,7 +60,7 @@ const AuthService = {
 
         await UserModel.markVerified(id);
 
-        return true;
+        return isExist;
     },
     async login({ email, password }) {
         const isExist = await UserModel.findByEmail(email);

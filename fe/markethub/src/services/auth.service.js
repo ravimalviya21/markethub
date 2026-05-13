@@ -63,11 +63,12 @@ export const useVerifyEmail = (token, options = {}) =>
         ...options,
     });
 
-export const useSignup = (options = {}) =>
-    useMutation({
+export const useSignup = (options = {}) => {
+    return useMutation({
         mutationFn: signupApi,
         ...options,
     });
+}
 
 export const useLogin = (options = {}) => {
     const queryClient = useQueryClient();
