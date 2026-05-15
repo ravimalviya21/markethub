@@ -46,7 +46,9 @@ export default function SignupPage() {
   };
 
   const handleGoogleSignup = () => {
-    message.info("Google signup (stub)");
+    const apiBase =
+      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002/api/v1";
+    window.location.href = `${apiBase}/auth/google`;
   };
 
   return (

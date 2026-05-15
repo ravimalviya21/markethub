@@ -31,7 +31,7 @@ const AuthController = {
         const { accessToken, refreshToken } = await AuthService.findOrCreateWithGoogle({ profile });
         setRefreshCookie(res, refreshToken);
 
-        const redirectUrl = process.env.OAUTH_SUCCESS_REDIRECT;
+        const redirectUrl = process.env.CORS_ORIGIN;
         if (redirectUrl) {
             const url = new URL(redirectUrl);
             url.searchParams.set("accessToken", accessToken);

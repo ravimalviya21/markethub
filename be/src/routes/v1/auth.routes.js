@@ -20,7 +20,7 @@ route.post("/forget-password", validate(forgotPasswordSchema), AuthController.fo
 route.post("/reset-password", validate(resetPasswordSchema), AuthController.resetPassword);
 
 
-route.get("/google", passport.authenticate("google", { session: false, scope: ["profile", "email"], })
+route.get("/google", passport.authenticate("google", { session: false, scope: ["profile", "email"] })
 );
 route.get("/google/callback", passport.authenticate("google", { session: false, failureRedirect: process.env.OAUTH_FAILURE_REDIRECT || "/api/v1/auth/google/failure", }), AuthController.findOrCreateWithGoogle);
 

@@ -27,7 +27,12 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = () => {
-    message.info("Google login (stub)");
+    // OAuth must be a top-level navigation, NOT an XHR/fetch call.
+    // Otherwise the browser tries to follow Google's redirect via XHR and blocks it with CORS.
+    // Note: Next.js only exposes env vars prefixed with NEXT_PUBLIC_ to the browser.
+    const apiBase =
+      process.env.BACKEND_URL || "http://localhost:3002/api/v1";
+    window.location.href = `${apiBase}/auth/google`;
   };
 
   return (

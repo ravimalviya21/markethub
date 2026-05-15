@@ -1,0 +1,37 @@
+services:
+  backend:
+    build: ./be
+    ports:
+      - "5001:5001"
+    depends_on:
+      - mysql
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=ravi
+      - DB_PASS=r@viRAVI1999
+      - DB=markethub
+
+  frontend:
+    build: ./fe/markethub
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+  mysql:
+    image: mysql:8
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=r@viRAVI1999
+      - MYSQL_DATABASE=markethub
+      - MYSQL_USER=ravi
+      - MYSQL_PASSWORD=r@viRAVI1999
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
+
