@@ -15,7 +15,7 @@ const {
 route.post("/signup", validate(registerSchema), AuthController.register);
 route.get("/verify-email", AuthController.verifyEmail);
 route.post("/login", validate(loginSchema), AuthController.login);
-route.post("/refresh-token", validate(refreshTokenSchema), AuthController.refreshToken);
+route.post("/refresh-token", AuthController.refreshToken);
 route.post("/forget-password", validate(forgotPasswordSchema), AuthController.forgetPassword);
 route.post("/reset-password", validate(resetPasswordSchema), AuthController.resetPassword);
 

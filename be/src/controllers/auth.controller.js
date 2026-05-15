@@ -56,7 +56,7 @@ const AuthController = {
     }),
     refreshToken: asyncHandler(async (req, res) => {
         const token = req.cookies?.[REFRESH_COOKIE_NAME];
-        const response = await AuthService.refreshToken({ refreshToken: token });
+        const response = await AuthService.rotateToken({ token });
         setRefreshCookie(res, response.refreshToken);
         res.status(STATUS_CODES.OK).json({
             success: true,
