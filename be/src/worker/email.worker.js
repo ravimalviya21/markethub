@@ -31,7 +31,7 @@ const templates = {
     `,
     }),
 
-    'password-reset': (data) => ({
+    'forget-password': (data) => ({
         subject: 'Reset your password',
         html: `
       <h1>Hi ${data.name}</h1>

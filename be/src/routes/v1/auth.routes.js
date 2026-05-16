@@ -17,6 +17,7 @@ route.get("/verify-email", AuthController.verifyEmail);
 route.post("/login", validate(loginSchema), AuthController.login);
 route.post("/refresh-token", AuthController.refreshToken);
 route.post("/forget-password", validate(forgotPasswordSchema), AuthController.forgetPassword);
+route.get("/password-redirect", AuthController.redirectPassword);
 route.post("/reset-password", validate(resetPasswordSchema), AuthController.resetPassword);
 
 

@@ -26,6 +26,7 @@ const forgotPasswordSchema = z.object({
 });
 
 const resetPasswordSchema = z.object({
+    id: z.string(),
     token: z.string().min(1),
     password: z
         .string()

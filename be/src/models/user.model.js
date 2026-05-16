@@ -26,6 +26,7 @@ const UserModel = {
     },
 
     async updatePassword({ hashedPassword, id }) {
+        console.log("checkPass", hashedPassword, id)
         const [result] = await pool.execute(
             `UPDATE users SET password = ? WHERE id = ?`,
             [hashedPassword, id]

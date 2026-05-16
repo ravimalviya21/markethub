@@ -6,6 +6,7 @@ import { App, Typography } from "antd";
 import AuthLayout from "@/components/layout/AuthLayout";
 import { Input, Button } from "@/components/ui";
 import { forgotPasswordSchema } from "@/validations/auth.validation";
+import { useForgotPassword } from "../../src/services/auth.service";
 
 const { Text } = Typography;
 
@@ -20,10 +21,19 @@ export default function ForgotPasswordPage() {
     defaultValues: { email: "" },
     mode: "onTouched",
   });
+  const forgetPassMutation = useForgotPassword();
 
   const onSubmit = async (values) => {
-    console.log("forgot-password", values);
-    message.success("If an account exists, a reset link has been sent.");
+    try {
+      const response = await forgetPassMutation.mutateAsync(values);
+      if (response?.success) {
+        message.success("Reset link has been sent over the mail")
+      } else {
+        message.error(response?.message || "Something went wrong")
+      }
+    } catch (error) {
+      message.error(error?.response?.data?.message || error?.message || "Login failed");
+    }
   };
 
   return (

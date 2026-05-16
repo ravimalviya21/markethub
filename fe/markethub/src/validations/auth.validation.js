@@ -31,3 +31,17 @@ export const sellerSignupSchema = signupSchema;
 export const forgotPasswordSchema = yup.object({
   email: emailRule,
 });
+
+export const resetPasswordSchema = yup.object({
+  password: yup
+    .string()
+    .required("Password is required")
+    .min(8, "Password must be at least 8 characters")
+    .matches(/[A-Z]/, "Must contain an uppercase letter")
+    .matches(/[0-9]/, "Must contain a number")
+    .matches(/[^A-Za-z0-9]/, "Must contain a special character"),
+  confirmPassword: yup
+    .string()
+    .required("Please confirm your password")
+    .oneOf([yup.ref("password")], "Passwords must match"),
+});

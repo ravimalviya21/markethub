@@ -52,7 +52,6 @@ const AuthController = {
                 accessToken: response.accessToken
             }
         })
-
     }),
     refreshToken: asyncHandler(async (req, res) => {
         const token = req.cookies?.[REFRESH_COOKIE_NAME];
@@ -75,13 +74,17 @@ const AuthController = {
         })
     }),
     resetPassword: asyncHandler(async (req, res) => {
-        const response = await AuthService.resetPassword({ id: req.cookies?.['id'], password: req?.body?.password });
+        const response = await AuthService.resetPassword({ id: req?.body?.id, password: req?.body?.password, token: req?.body?.token });
         res.status(STATUS_CODES.OK).json({
             success: true,
             data: {
                 message: "Password update successfully! Please login again.."
             }
         })
+    }),
+    redirectPassword: asyncHandler(async (req, res) => {
+        const response = await AuthService.redirectPassword({ id: req.query.id });
+        res.redirect(`${process.env.CORS_ORIGIN}/auth/reset-password?id=${response?.id}&token=${response?.accessToken}`)
     }),
     logout: asyncHandler(async (req, res) => {
         const token = req.cookies?.[REFRESH_COOKIE_NAME];

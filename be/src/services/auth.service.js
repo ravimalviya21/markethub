@@ -132,7 +132,7 @@ const AuthService = {
         const isUserExist = await UserModel.findByEmail(email);
         if (!isUserExist) throw new AppError("User not exist", STATUS_CODES.NOT_FOUND);
 
-        const { id } = isUserExist;
+        const { id, name } = isUserExist;
 
         // proccess job queue
         const emailQueue = new Queue('email', {
@@ -148,13 +148,24 @@ const AuthService = {
             template: 'forget-password',
             data: {
                 name,
-                verificationUrl: `${process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 3003}`}/api/v1/auth/reset-password?id=${id}`,
+                resetUrl: `${process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 3003}`}/api/v1/auth/password-redirect?id=${id}`,
             },
         });
         return true
     },
-    async resetPassword({ password, id }) {
-        const hashedPassword = hash.hashPassword(password);
+    async redirectPassword({ id }) {
+        const user = await UserModel.findById(id);
+        if (!user) throw new AppError("User not exist", STATUS_CODES.NOT_FOUND);
+
+        const accessToken = await tokenGen.generateAccessToken(user);
+
+        return { id: user?.id, accessToken }
+    },
+    async resetPassword({ password, id, token }) {
+        const isValid = tokenGen.verifyToken(token);
+        if (!isValid) throw new AppError("Unauthorized - token expired", STATUS_CODES.UNAUTHORIZED);
+
+        const hashedPassword = await hash.hashPassword(password);
         const user = await UserModel.updatePassword({ hashedPassword, id });
         return true;
     },

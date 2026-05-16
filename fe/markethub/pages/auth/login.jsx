@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/router";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { App, Typography } from "antd";
 
 import AuthLayout from "@/components/layout/AuthLayout";
 import { Input, Button, GoogleAuthButton } from "@/components/ui";
 import { loginSchema } from "@/validations/auth.validation";
+import { useLogin } from "../../src/services/auth.service";
 
 const { Text } = Typography;
 
@@ -20,18 +22,29 @@ export default function LoginPage() {
     defaultValues: { email: "", password: "" },
     mode: "onTouched",
   });
+  const router = useRouter();
+  const loginMutation = useLogin();
 
   const onSubmit = async (values) => {
-    console.log("login", values);
-    message.success("Logged in (stub)");
+
+    try {
+      const response = await loginMutation.mutateAsync(values);
+      if (response?.success) {
+        router.push({
+          pathname: "/",
+        });
+      } else {
+        message.error(response?.message || "Something went wrong");
+      }
+    } catch (error) {
+      const errMsg =
+        error?.response?.data?.message || error?.message || "Login failed";
+      message.error(errMsg);
+    }
   };
 
   const handleGoogleLogin = () => {
-    // OAuth must be a top-level navigation, NOT an XHR/fetch call.
-    // Otherwise the browser tries to follow Google's redirect via XHR and blocks it with CORS.
-    // Note: Next.js only exposes env vars prefixed with NEXT_PUBLIC_ to the browser.
-    const apiBase =
-      process.env.BACKEND_URL || "http://localhost:3002/api/v1";
+    const apiBase = process.env.BACKEND_URL || "http://localhost:3002/api/v1";
     window.location.href = `${apiBase}/auth/google`;
   };
 
