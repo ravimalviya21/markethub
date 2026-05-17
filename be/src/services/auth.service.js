@@ -69,6 +69,7 @@ const AuthService = {
 
         const isPasswordCorrect = await hash.verifyPassword(password, isExist.password);
 
+        if (!isPasswordCorrect) throw new AppError("Invalid credentials", STATUS_CODES.BAD_REQUEST);
 
         const accessToken = await tokenGen.generateAccessToken({ id: isExist?.id, name: isExist?.name, email: isExist?.email, role: isExist?.role });
         const refreshToken = await tokenGen.generateRefreshToken({ id: isExist?.id, name: isExist?.name, email: isExist?.email, role: isExist?.role });
