@@ -2,10 +2,12 @@ services:
   backend:
     build: ./be
     ports:
-      - "5001:5001"
+      - "3002:3002"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     environment:
+      - NODE_ENV=production
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_USER=ravi
@@ -23,7 +25,7 @@ services:
     image: mysql:8
     restart: always
     ports:
-      - "3306:3306"
+      - "3005:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=r@viRAVI1999
       - MYSQL_DATABASE=markethub
@@ -31,7 +33,11 @@ services:
       - MYSQL_PASSWORD=r@viRAVI1999
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uravi", "-pr@viRAVI1999"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   mysql_data:
-
