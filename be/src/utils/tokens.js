@@ -24,4 +24,8 @@ const verifyToken = (token, secret = JWT_SECRET) => {
     return jwt.verify(token, secret);
 };
 
-module.exports = { generateAccessToken, generateRefreshToken, verifyToken };
+const decodeToken = (token, secret = JWT_SECRET) => {
+    return jwt.decode(token, secret);
+}
+
+module.exports = { generateAccessToken, generateRefreshToken, verifyToken , decodeToken};

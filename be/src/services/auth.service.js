@@ -50,13 +50,17 @@ const AuthService = {
 
         return { refreshToken, accessToken };
     },
-    async verifyEmail({ id, token }) {
-        const isExist = await UserModel.findById(id);
-        if (!isExist) throw new AppError("User not exist", STATUS_CODES.NOT_FOUND);
+    async verifyEmail({ token }) {
 
         const isTokenVerified = await tokenGen.verifyToken(token);
-
+        
         if (!isTokenVerified) throw new AppError("Unauthorized - token expired", STATUS_CODES.UNAUTHORIZED)
+
+        const decoded = await tokenGen.decodeToken(token);
+        const { id } = decoded;
+
+        const isExist = await UserModel.findById(id);
+        if (!isExist) throw new AppError("User not exist", STATUS_CODES.NOT_FOUND);
 
         await UserModel.markVerified(id);
 
@@ -123,6 +127,7 @@ const AuthService = {
         const refreshToken = await tokenGen.generateRefreshToken(payload);
         const expiresAt = new Date(Date.now() + process.env.REFRESH_TOKEN_DAYS * 24 * 60 * 60 * 1000);
 
+        await TokenModel.markUsed(token);
         await TokenModel.save({ token: refreshToken, type: "refresh_token", userId: user.id, expiresAt });
 
         return { accessToken, refreshToken };
@@ -163,7 +168,7 @@ const AuthService = {
         return { id: user?.id, accessToken }
     },
     async resetPassword({ password, id, token }) {
-        const isValid = tokenGen.verifyToken(token);
+        const isValid = await tokenGen.verifyToken(token);
         if (!isValid) throw new AppError("Unauthorized - token expired", STATUS_CODES.UNAUTHORIZED);
 
         const hashedPassword = await hash.hashPassword(password);

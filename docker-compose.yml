@@ -6,13 +6,12 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    env_file:
+      - ./be/.env
     environment:
       - NODE_ENV=production
       - DB_HOST=mysql
       - DB_PORT=3306
-      - DB_USER=ravi
-      - DB_PASS=r@viRAVI1999
-      - DB=markethub
 
   frontend:
     build: ./fe/markethub
@@ -27,14 +26,14 @@ services:
     ports:
       - "3005:3306"
     environment:
-      - MYSQL_ROOT_PASSWORD=r@viRAVI1999
-      - MYSQL_DATABASE=markethub
-      - MYSQL_USER=ravi
-      - MYSQL_PASSWORD=r@viRAVI1999
+      - MYSQL_ROOT_PASSWORD=${DB_PASS}
+      - MYSQL_DATABASE=${DB}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASS}
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uravi", "-pr@viRAVI1999"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${DB_USER}", "-p${DB_PASS}"]
       interval: 5s
       timeout: 5s
       retries: 10

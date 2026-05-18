@@ -17,7 +17,7 @@ const AuthController = {
         })
     }),
     verifyEmail: asyncHandler(async (req, res) => {
-        const response = await AuthService.verifyEmail({ id: req.query.id, token: req.query.token });
+        const response = await AuthService.verifyEmail({ token: req.query.token });
         // res.status(STATUS_CODES.OK).json({
         //     success: true,
         //     data: {
