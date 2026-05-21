@@ -7,10 +7,6 @@ const MOCK_SUGGESTIONS = [
   "Running shoes",
   "Smart watch",
   "Office chair",
-  "Coffee maker",
-  "Yoga mat",
-  "Laptop stand",
-  "Bluetooth speaker",
 ];
 
 const buildOptions = (query, suggestions) => {
