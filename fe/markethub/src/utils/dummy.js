@@ -128,6 +128,47 @@ export const BEST_DEALS = [
   },
 ];
 
+export const USER_PROFILE = {
+  id: "u-001",
+  role: "buyer",
+  firstName: "Ravi",
+  lastName: "Malviya",
+  email: "ravi1999.rm2110@gmail.com",
+  phone: "+91 98765 43210",
+  gender: "male",
+  dob: "1999-10-21",
+  avatar: "https://picsum.photos/seed/avatar-ravi/200/200",
+  memberSince: "2024-08-12",
+  addresses: [
+    {
+      id: "addr-1",
+      label: "Home",
+      name: "Ravi Malviya",
+      phone: "+91 98765 43210",
+      line1: "203, Sunshine Apartments",
+      line2: "MG Road",
+      city: "Indore",
+      state: "Madhya Pradesh",
+      pincode: "452001",
+      country: "India",
+      isDefault: true,
+    },
+    {
+      id: "addr-2",
+      label: "Office",
+      name: "Ravi Malviya",
+      phone: "+91 98765 43210",
+      line1: "Tower B, 4th Floor",
+      line2: "Vijay Nagar Tech Park",
+      city: "Indore",
+      state: "Madhya Pradesh",
+      pincode: "452010",
+      country: "India",
+      isDefault: false,
+    },
+  ],
+};
+
 export const BRAND_HIGHLIGHTS = [
   { id: "brand-1", name: "Sony", image: "https://picsum.photos/seed/brand-sony/200/200", tagline: "Up to 40% off" },
   { id: "brand-2", name: "Nike", image: "https://picsum.photos/seed/brand-nike/200/200", tagline: "New arrivals" },

@@ -96,7 +96,7 @@ export default function BuyerDashboardPage() {
       key: "profile",
       icon: <UserOutlined />,
       label: "My Profile",
-      onClick: () => router.push("/buyer/profile"),
+      onClick: () => router.push("/profile"),
     },
     {
       key: "orders",
