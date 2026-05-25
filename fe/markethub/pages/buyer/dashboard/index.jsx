@@ -125,6 +125,8 @@ export default function BuyerDashboardPage() {
       <Header
         user={{ name: "Buyer" }}
         profileMenuItems={profileMenuItems}
+        cartCount={0}
+        onCartClick={() => router.push("/buyer/cart")}
         onSearch={(term) => console.log("search:", term)}
         onChangeLocation={(loc) => console.log("location:", loc)}
       />

@@ -576,6 +576,8 @@ export default function ProfilePage() {
       <Header
         user={{ name: `${user.firstName} ${user.lastName}` }}
         profileMenuItems={profileMenuItems}
+        cartCount={0}
+        onCartClick={() => router.push(`/${user.role}/cart`)}
         onSearch={(term) => console.log("search:", term)}
         onChangeLocation={(loc) => console.log("location:", loc)}
       />

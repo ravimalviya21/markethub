@@ -3,12 +3,14 @@ import Logo from "./Logo";
 import SearchBox from "./SearchBox";
 import LocationChanger from "./LocationChanger";
 import ProfileMenu from "./ProfileMenu";
+import CartButton from "./CartButton";
 
 const { Header: AntHeader } = Layout;
 
 const Header = ({
   showSearch = true,
   showLocation = true,
+  showCart = true,
   logoHref = "/",
   user,
   profileMenuItems = [],
@@ -16,10 +18,12 @@ const Header = ({
   locations,
   location,
   defaultLocation,
+  cartCount = 0,
   onSearch,
   onSelectSearch,
   onChangeLocation,
   onSelectProfileItem,
+  onCartClick,
 }) => {
   return (
     <AntHeader
@@ -74,6 +78,9 @@ const Header = ({
           items={profileMenuItems}
           onSelect={onSelectProfileItem}
         />
+        {showCart && (
+          <CartButton count={cartCount} onClick={onCartClick} />
+        )}
       </div>
     </AntHeader>
   );
