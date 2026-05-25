@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import {
   App,
   Avatar,
   Card,
+  Checkbox,
   Col,
   DatePicker,
   Layout,
+  Modal,
   Radio,
   Row,
+  Select,
   Space,
   Tabs,
   Tag,
@@ -213,6 +216,179 @@ const AddressCard = ({ address, onEdit, onDelete, onMakeDefault }) => (
   </Card>
 );
 
+const EMPTY_ADDRESS = {
+  label: "Home",
+  name: "",
+  phone: "",
+  line1: "",
+  line2: "",
+  city: "",
+  state: "",
+  pincode: "",
+  country: "India",
+  isDefault: false,
+};
+
+const AddressFormModal = ({ open, address, onCancel, onSubmit }) => {
+  const isEdit = Boolean(address?.id);
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { isSubmitting },
+  } = useForm({
+    defaultValues: EMPTY_ADDRESS,
+    mode: "onTouched",
+  });
+
+  useEffect(() => {
+    if (open) {
+      reset(address ? { ...EMPTY_ADDRESS, ...address } : EMPTY_ADDRESS);
+    }
+  }, [open, address, reset]);
+
+  return (
+    <Modal
+      open={open}
+      title={isEdit ? "Edit address" : "Add new address"}
+      onCancel={onCancel}
+      footer={null}
+      destroyOnClose
+      centered
+      width={640}
+    >
+      <form onSubmit={handleSubmit(onSubmit)} style={{ marginTop: 8 }}>
+        <Row gutter={16}>
+          <Col xs={24} sm={12}>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: "block", marginBottom: 6, fontSize: 14 }}>
+                <span style={{ color: "#ff4d4f", marginRight: 4 }}>*</span>
+                Address label
+              </label>
+              <Controller
+                name="label"
+                control={control}
+                rules={{ required: "Label is required" }}
+                render={({ field, fieldState: { error } }) => (
+                  <>
+                    <Select
+                      {...field}
+                      size="large"
+                      style={{ width: "100%" }}
+                      status={error ? "error" : ""}
+                      options={[
+                        { value: "Home", label: "Home" },
+                        { value: "Office", label: "Office" },
+                        { value: "Other", label: "Other" },
+                      ]}
+                    />
+                    {error?.message && (
+                      <div style={{ marginTop: 4, fontSize: 12, color: "#ff4d4f" }}>
+                        {error.message}
+                      </div>
+                    )}
+                  </>
+                )}
+              />
+            </div>
+          </Col>
+          <Col xs={24} sm={12}>
+            <Input
+              name="name"
+              control={control}
+              label="Full name"
+              required
+              rules={{ required: "Name is required" }}
+            />
+          </Col>
+          <Col xs={24} sm={12}>
+            <Input
+              name="phone"
+              control={control}
+              label="Phone"
+              required
+              rules={{ required: "Phone is required" }}
+            />
+          </Col>
+          <Col xs={24} sm={12}>
+            <Input
+              name="pincode"
+              control={control}
+              label="Pincode"
+              required
+              rules={{ required: "Pincode is required" }}
+            />
+          </Col>
+          <Col xs={24}>
+            <Input
+              name="line1"
+              control={control}
+              label="Address line 1"
+              required
+              rules={{ required: "Address line 1 is required" }}
+            />
+          </Col>
+          <Col xs={24}>
+            <Input name="line2" control={control} label="Address line 2" />
+          </Col>
+          <Col xs={24} sm={12}>
+            <Input
+              name="city"
+              control={control}
+              label="City"
+              required
+              rules={{ required: "City is required" }}
+            />
+          </Col>
+          <Col xs={24} sm={12}>
+            <Input
+              name="state"
+              control={control}
+              label="State"
+              required
+              rules={{ required: "State is required" }}
+            />
+          </Col>
+          <Col xs={24} sm={12}>
+            <Input
+              name="country"
+              control={control}
+              label="Country"
+              required
+              rules={{ required: "Country is required" }}
+            />
+          </Col>
+          <Col xs={24}>
+            <Controller
+              name="isDefault"
+              control={control}
+              render={({ field: { value, onChange, ...rest } }) => (
+                <Checkbox
+                  {...rest}
+                  checked={!!value}
+                  onChange={(e) => onChange(e.target.checked)}
+                  style={{ marginBottom: 16 }}
+                >
+                  Set as default address
+                </Checkbox>
+              )}
+            />
+          </Col>
+        </Row>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}>
+          <Button type="default" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button htmlType="submit" loading={isSubmitting}>
+            {isEdit ? "Save changes" : "Add address"}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
 const AddressesTab = ({ addresses, onAdd, onEdit, onDelete, onMakeDefault }) => (
   <Card>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -286,6 +462,8 @@ export default function ProfilePage() {
   const { message } = App.useApp();
   const [activeTab, setActiveTab] = useState("personal");
   const [user, setUser] = useState(USER_PROFILE);
+  const [addressModalOpen, setAddressModalOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(null);
 
   const profileMenuItems = [
     {
@@ -315,8 +493,45 @@ export default function ProfilePage() {
     message.success("Profile updated");
   };
 
-  const handleAddAddress = () => message.info("Open address form");
-  const handleEditAddress = (a) => message.info(`Edit ${a.label}`);
+  const handleAddAddress = () => {
+    setEditingAddress(null);
+    setAddressModalOpen(true);
+  };
+  const handleEditAddress = (a) => {
+    setEditingAddress(a);
+    setAddressModalOpen(true);
+  };
+  const handleAddressSubmit = (values) => {
+    setUser((prev) => {
+      const isEdit = Boolean(editingAddress?.id);
+      const willBeDefault = values.isDefault;
+      const next = isEdit
+        ? prev.addresses.map((x) =>
+            x.id === editingAddress.id ? { ...x, ...values } : x
+          )
+        : [
+            ...prev.addresses,
+            { ...values, id: `addr-${Date.now()}` },
+          ];
+      const normalized = willBeDefault
+        ? next.map((x) => ({
+            ...x,
+            isDefault:
+              isEdit
+                ? x.id === editingAddress.id
+                : x.id === next[next.length - 1].id,
+          }))
+        : next;
+      return { ...prev, addresses: normalized };
+    });
+    message.success(editingAddress ? "Address updated" : "Address added");
+    setAddressModalOpen(false);
+    setEditingAddress(null);
+  };
+  const handleAddressCancel = () => {
+    setAddressModalOpen(false);
+    setEditingAddress(null);
+  };
   const handleDeleteAddress = (a) => {
     setUser((prev) => ({ ...prev, addresses: prev.addresses.filter((x) => x.id !== a.id) }));
     message.success("Address removed");
@@ -380,6 +595,12 @@ export default function ProfilePage() {
           </div>
         </div>
       </Content>
+      <AddressFormModal
+        open={addressModalOpen}
+        address={editingAddress}
+        onCancel={handleAddressCancel}
+        onSubmit={handleAddressSubmit}
+      />
     </Layout>
   );
 }

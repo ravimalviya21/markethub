@@ -21,12 +21,14 @@ const Input = ({
   placeholder,
   type = "text",
   required = false,
+  rules,
   ...rest
 }) => {
   return (
     <Controller
       name={name}
       control={control}
+      rules={rules}
       render={({ field, fieldState: { error } }) => {
         const AntComponent =
           type === "password" ? AntInput.Password : AntInput;
