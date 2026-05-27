@@ -1,5 +1,5 @@
 {
-  "defaultEnv": { "ENV": "NODE_ENV" },
+  "defaultEnv": "development",
   "development": {
     "driver": "mysql",
     "host": { "ENV": "DB_HOST" },
