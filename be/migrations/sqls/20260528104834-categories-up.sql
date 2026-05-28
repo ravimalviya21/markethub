@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
     parentId INT NULL,
     displayName VARCHAR(50) NOT NULL,
-    imagerUrl VARCHAR(50),
+    imageUrl VARCHAR(50),
     isActive BOOLEAN DEFAULT FALSE,
     createdBy VARCHAR(255) NOT NULL,
     updatedBy VARCHAR(255) NOT NULL,
