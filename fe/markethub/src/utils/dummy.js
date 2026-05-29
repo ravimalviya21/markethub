@@ -306,6 +306,96 @@ export const BUYER_ORDERS = [
   },
 ];
 
+export const ADMIN_PROFILE = {
+  id: "adm-001",
+  role: "admin",
+  name: "Ravi Malviya",
+  email: "admin@markethub.com",
+  avatar: "https://picsum.photos/seed/avatar-admin/200/200",
+};
+
+export const ADMIN_DASHBOARD_STATS = {
+  users: {
+    total: 48230,
+    buyers: 45120,
+    sellers: 3110,
+    newThisWeek: 412,
+    changePct: 5.2,
+  },
+  orders: {
+    total: 18742,
+    today: 312,
+    changePct: 8.4,
+  },
+  revenue: {
+    total: 28457900,
+    currency: "INR",
+    today: 642300,
+    changePct: 12.6,
+  },
+  pendingApprovals: {
+    total: 170,
+    sellerRegistrations: 27,
+    products: 143,
+  },
+  disputes: {
+    active: 18,
+    urgent: 4,
+    resolvedThisWeek: 31,
+  },
+};
+
+export const ADMIN_PENDING_SELLERS = [
+  {
+    id: "SEL-3041",
+    name: "Aurora Home Decor",
+    contact: "priya@aurorahome.in",
+    category: "Home & Living",
+    appliedAt: "2026-05-27T09:12:00.000Z",
+  },
+  {
+    id: "SEL-3038",
+    name: "PeakFit Sports",
+    contact: "sales@peakfit.com",
+    category: "Sports & Fitness",
+    appliedAt: "2026-05-26T14:40:00.000Z",
+  },
+  {
+    id: "SEL-3035",
+    name: "Lumen Electronics",
+    contact: "hello@lumen.co",
+    category: "Electronics",
+    appliedAt: "2026-05-25T18:05:00.000Z",
+  },
+];
+
+export const ADMIN_RECENT_DISPUTES = [
+  {
+    id: "DSP-1187",
+    orderId: "ORD-2026-00148",
+    buyer: "Aman Gupta",
+    reason: "Item not as described",
+    priority: "urgent",
+    openedAt: "2026-05-28T07:30:00.000Z",
+  },
+  {
+    id: "DSP-1182",
+    orderId: "ORD-2026-00131",
+    buyer: "Sneha Rao",
+    reason: "Refund not received",
+    priority: "high",
+    openedAt: "2026-05-27T11:15:00.000Z",
+  },
+  {
+    id: "DSP-1179",
+    orderId: "ORD-2026-00124",
+    buyer: "Vikram Singh",
+    reason: "Damaged on arrival",
+    priority: "medium",
+    openedAt: "2026-05-26T16:48:00.000Z",
+  },
+];
+
 export const BRAND_HIGHLIGHTS = [
   { id: "brand-1", name: "Sony", image: "https://picsum.photos/seed/brand-sony/200/200", tagline: "Up to 40% off" },
   { id: "brand-2", name: "Nike", image: "https://picsum.photos/seed/brand-nike/200/200", tagline: "New arrivals" },
