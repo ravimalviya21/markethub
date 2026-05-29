@@ -15,11 +15,25 @@ const CategoryModel = {
         return result.insertId;
     },
     async update({ id, displayName, isActive, userId }) {
+        const fields = [];
+        const values = [];
+        if (displayName !== undefined) {
+            fields.push("displayName = ?");
+            values.push(displayName);
+        }
+        if (isActive !== undefined) {
+            fields.push("isActive = ?");
+            values.push(isActive);
+        }
+        fields.push("updatedBy = ?");
+        values.push(userId);
+        values.push(id);
+
         const [result] = await pool.execute(
             `UPDATE categories
-            SET displayName = ?, isActive = ?, updatedBy = ? 
+            SET ${fields.join(", ")}
             WHERE id = ?`,
-            [displayName, isActive, userId, id]
+            values
         )
         return result.affectedRows;
     },

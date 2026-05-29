@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Read",
+      "Write",
+      "Edit",
+      "Bash(grep -rnE \"graph\\\\.svg|youtub\\\\.svg|linkedIn\\\\.svg|MarketingStack/\\(card|tile\\)\" app components)"
+    ],
+    "ask": [
+      "Bash(git:*)",
+      "Bash(gh:*)"
+    ]
+  }
+}

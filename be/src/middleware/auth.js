@@ -1,5 +1,5 @@
 const { AppError } = require("../utils/errors");
-const verifyToken = require("../utils/tokens");
+const { verifyToken } = require("../utils/tokens");
 
 
 const authenticate = (req, res, next) => {
