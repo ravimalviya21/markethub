@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import {
+  Avatar,
   Card,
   Col,
   List,
@@ -17,6 +18,7 @@ import {
   ExclamationCircleOutlined,
   ShopOutlined,
   TagsOutlined,
+  UserOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
   RightOutlined,
@@ -29,6 +31,7 @@ import {
   ADMIN_DASHBOARD_STATS,
   ADMIN_PENDING_SELLERS,
   ADMIN_RECENT_DISPUTES,
+  ADMIN_USERS,
 } from "@/utils/dummy";
 import { formatPrice } from "@/utils/customMethods";
 
@@ -91,6 +94,9 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const stats = ADMIN_DASHBOARD_STATS;
   const revenueCurrency = stats.revenue.currency || "INR";
+  const recentUsers = [...ADMIN_USERS]
+    .sort((a, b) => dayjs(b.joinedAt).valueOf() - dayjs(a.joinedAt).valueOf())
+    .slice(0, 3);
 
   return (
     <AdminLayout maxWidth={1600}>
@@ -176,7 +182,80 @@ export default function AdminDashboardPage() {
       </Row>
 
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col xs={24} lg={12}>
+        <Col xs={24} lg={8}>
+          <Card
+            title={
+              <Space>
+                <TeamOutlined />
+                <span>User Management</span>
+                <Tag color="blue">{formatNumber(stats.users.total)}</Tag>
+              </Space>
+            }
+            extra={
+              <Link onClick={() => router.push("/admin/users")}>
+                View all <RightOutlined style={{ fontSize: 10 }} />
+              </Link>
+            }
+            styles={{ body: { padding: 0 } }}
+            style={{ height: "100%" }}
+          >
+            <Row>
+              <Col span={12} style={{ borderRight: "1px solid #f0f0f0", padding: 20 }}>
+                <Statistic
+                  title="Buyers"
+                  value={stats.users.buyers}
+                  formatter={(v) => formatNumber(v)}
+                  prefix={<UserOutlined style={{ color: "#1677ff" }} />}
+                />
+              </Col>
+              <Col span={12} style={{ padding: 20 }}>
+                <Statistic
+                  title="Sellers"
+                  value={stats.users.sellers}
+                  formatter={(v) => formatNumber(v)}
+                  prefix={<ShopOutlined style={{ color: "#722ed1" }} />}
+                />
+              </Col>
+            </Row>
+
+            <List
+              header={
+                <Text strong style={{ paddingLeft: 4 }}>
+                  Recently joined
+                </Text>
+              }
+              dataSource={recentUsers}
+              style={{ padding: "0 20px 8px" }}
+              renderItem={(user) => (
+                <List.Item
+                  actions={[
+                    <Button
+                      key="view"
+                      type="default"
+                      size="small"
+                      onClick={() => router.push("/admin/users")}
+                    >
+                      View
+                    </Button>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    avatar={<Avatar src={user.avatar} icon={<UserOutlined />} />}
+                    title={user.name}
+                    description={
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {user.role === "seller" ? "Seller" : "Buyer"} · joined{" "}
+                        {dayjs(user.joinedAt).format("DD MMM")}
+                      </Text>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={8}>
           <Card
             title={
               <Space>
@@ -247,7 +326,7 @@ export default function AdminDashboardPage() {
           </Card>
         </Col>
 
-        <Col xs={24} lg={12}>
+        <Col xs={24} lg={8}>
           <Card
             title={
               <Space>
