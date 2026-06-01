@@ -97,6 +97,12 @@ export default function AdminDashboardPage() {
   const recentUsers = [...ADMIN_USERS]
     .sort((a, b) => dayjs(b.joinedAt).valueOf() - dayjs(a.joinedAt).valueOf())
     .slice(0, 3);
+  const recentSellers = ADMIN_USERS.filter((u) => u.role === "seller")
+    .sort((a, b) => dayjs(b.joinedAt).valueOf() - dayjs(a.joinedAt).valueOf())
+    .slice(0, 3);
+  const activeSellers = ADMIN_USERS.filter(
+    (u) => u.role === "seller" && u.status === "active"
+  ).length;
 
   return (
     <AdminLayout maxWidth={1600}>
@@ -182,7 +188,7 @@ export default function AdminDashboardPage() {
       </Row>
 
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col xs={24} lg={8}>
+        <Col xs={24} lg={12} xl={6}>
           <Card
             title={
               <Space>
@@ -255,7 +261,80 @@ export default function AdminDashboardPage() {
           </Card>
         </Col>
 
-        <Col xs={24} lg={8}>
+        <Col xs={24} lg={12} xl={6}>
+          <Card
+            title={
+              <Space>
+                <ShopOutlined />
+                <span>Seller Management</span>
+                <Tag color="purple">{formatNumber(stats.users.sellers)}</Tag>
+              </Space>
+            }
+            extra={
+              <Link onClick={() => router.push("/admin/seller-management")}>
+                View all <RightOutlined style={{ fontSize: 10 }} />
+              </Link>
+            }
+            styles={{ body: { padding: 0 } }}
+            style={{ height: "100%" }}
+          >
+            <Row>
+              <Col span={12} style={{ borderRight: "1px solid #f0f0f0", padding: 20 }}>
+                <Statistic
+                  title="Active"
+                  value={activeSellers}
+                  formatter={(v) => formatNumber(v)}
+                  prefix={<ShopOutlined style={{ color: "#722ed1" }} />}
+                />
+              </Col>
+              <Col span={12} style={{ padding: 20 }}>
+                <Statistic
+                  title="Pending"
+                  value={stats.pendingApprovals.sellerRegistrations}
+                  formatter={(v) => formatNumber(v)}
+                  prefix={<AuditOutlined style={{ color: "#fa8c16" }} />}
+                />
+              </Col>
+            </Row>
+
+            <List
+              header={
+                <Text strong style={{ paddingLeft: 4 }}>
+                  Recently joined
+                </Text>
+              }
+              dataSource={recentSellers}
+              style={{ padding: "0 20px 8px" }}
+              renderItem={(seller) => (
+                <List.Item
+                  actions={[
+                    <Button
+                      key="view"
+                      type="default"
+                      size="small"
+                      onClick={() => router.push("/admin/seller-management")}
+                    >
+                      View
+                    </Button>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    avatar={<Avatar src={seller.avatar} icon={<ShopOutlined />} />}
+                    title={seller.businessName || seller.name}
+                    description={
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {seller.category || "Seller"} · joined{" "}
+                        {dayjs(seller.joinedAt).format("DD MMM")}
+                      </Text>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={12} xl={6}>
           <Card
             title={
               <Space>
@@ -326,7 +405,7 @@ export default function AdminDashboardPage() {
           </Card>
         </Col>
 
-        <Col xs={24} lg={8}>
+        <Col xs={24} lg={12} xl={6}>
           <Card
             title={
               <Space>
