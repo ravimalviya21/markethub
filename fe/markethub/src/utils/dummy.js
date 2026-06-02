@@ -326,6 +326,8 @@ export const ADMIN_DASHBOARD_STATS = {
     total: 18742,
     today: 312,
     changePct: 8.4,
+    processing: 842,
+    delivered: 16930,
   },
   revenue: {
     total: 28457900,
@@ -342,6 +344,16 @@ export const ADMIN_DASHBOARD_STATS = {
     total: 12480,
     active: 12337,
     pending: 143,
+  },
+  categories: {
+    total: 48,
+    active: 42,
+    inactive: 6,
+  },
+  banners: {
+    total: 12,
+    active: 5,
+    scheduled: 3,
   },
   disputes: {
     active: 18,
@@ -572,6 +584,84 @@ export const ADMIN_RECENT_PRODUCTS = [
     price: 3899,
     status: "active",
     addedAt: "2026-05-25T15:10:00.000Z",
+  },
+];
+
+export const ADMIN_RECENT_ORDERS = [
+  {
+    id: "ORD-2026-00148",
+    buyer: "Aman Gupta",
+    total: 6197,
+    status: "delivered",
+    placedAt: "2026-05-22T11:14:00.000Z",
+  },
+  {
+    id: "ORD-2026-00139",
+    buyer: "Sneha Rao",
+    total: 32999,
+    status: "shipped",
+    placedAt: "2026-05-18T09:02:00.000Z",
+  },
+  {
+    id: "ORD-2026-00131",
+    buyer: "Vikram Singh",
+    total: 8698,
+    status: "confirmed",
+    placedAt: "2026-05-14T17:46:00.000Z",
+  },
+];
+
+export const ADMIN_CATEGORIES = [
+  {
+    id: "CAT-01",
+    name: "Electronics",
+    image: "https://picsum.photos/seed/cat-electronics/200/200",
+    productsCount: 3214,
+    status: "active",
+    updatedAt: "2026-05-26T10:00:00.000Z",
+  },
+  {
+    id: "CAT-02",
+    name: "Fashion",
+    image: "https://picsum.photos/seed/cat-fashion/200/200",
+    productsCount: 2890,
+    status: "active",
+    updatedAt: "2026-05-24T13:30:00.000Z",
+  },
+  {
+    id: "CAT-03",
+    name: "Home & Living",
+    image: "https://picsum.photos/seed/cat-home/200/200",
+    productsCount: 1786,
+    status: "inactive",
+    updatedAt: "2026-05-20T09:45:00.000Z",
+  },
+];
+
+export const ADMIN_RECENT_BANNERS = [
+  {
+    id: "BNR-12",
+    title: "Mega Electronics Sale",
+    image: "https://picsum.photos/seed/markethub-1/1600/500",
+    status: "active",
+    placement: "Home top",
+    updatedAt: "2026-05-28T08:30:00.000Z",
+  },
+  {
+    id: "BNR-11",
+    title: "Fashion Week",
+    image: "https://picsum.photos/seed/markethub-2/1600/500",
+    status: "scheduled",
+    placement: "Home top",
+    updatedAt: "2026-05-26T14:00:00.000Z",
+  },
+  {
+    id: "BNR-10",
+    title: "Home Essentials",
+    image: "https://picsum.photos/seed/markethub-3/1600/500",
+    status: "active",
+    placement: "Category strip",
+    updatedAt: "2026-05-22T11:10:00.000Z",
   },
 ];
 

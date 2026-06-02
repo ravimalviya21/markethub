@@ -24,19 +24,47 @@ import {
   RightOutlined,
   AppstoreOutlined,
   ClockCircleOutlined,
+  CheckCircleOutlined,
+  SyncOutlined,
+  PictureOutlined,
+  CalendarOutlined,
+  StopOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui";
 import {
+  ADMIN_CATEGORIES,
   ADMIN_DASHBOARD_STATS,
   ADMIN_PENDING_SELLERS,
+  ADMIN_RECENT_BANNERS,
   ADMIN_RECENT_DISPUTES,
+  ADMIN_RECENT_ORDERS,
   ADMIN_RECENT_PRODUCTS,
   ADMIN_USERS,
 } from "@/utils/dummy";
 import { formatPrice } from "@/utils/customMethods";
+
+const ORDER_STATUS_META = {
+  pending: { color: "default", label: "Pending" },
+  confirmed: { color: "blue", label: "Confirmed" },
+  shipped: { color: "geekblue", label: "Shipped" },
+  delivered: { color: "green", label: "Delivered" },
+  cancelled: { color: "red", label: "Cancelled" },
+  returned: { color: "orange", label: "Returned" },
+};
+
+const CATEGORY_STATUS_META = {
+  active: { color: "green", label: "Active" },
+  inactive: { color: "default", label: "Inactive" },
+};
+
+const BANNER_STATUS_META = {
+  active: { color: "green", label: "Live" },
+  scheduled: { color: "gold", label: "Scheduled" },
+  expired: { color: "default", label: "Expired" },
+};
 
 const { Title, Text, Link } = Typography;
 
@@ -406,6 +434,254 @@ export default function AdminDashboardPage() {
                   />
                 </List.Item>
               )}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={12} xl={8}>
+          <Card
+            title={
+              <Space>
+                <ShoppingOutlined />
+                <span>Order Management</span>
+                <Tag color="purple">{formatNumber(stats.orders.total)}</Tag>
+              </Space>
+            }
+            extra={
+              <Link onClick={() => router.push("/admin/order-management")}>
+                View all <RightOutlined style={{ fontSize: 10 }} />
+              </Link>
+            }
+            styles={{ body: { padding: 0 } }}
+            style={{ height: "100%" }}
+          >
+            <Row>
+              <Col span={12} style={{ borderRight: "1px solid #f0f0f0", padding: 20 }}>
+                <Statistic
+                  title="Processing"
+                  value={stats.orders.processing}
+                  formatter={(v) => formatNumber(v)}
+                  prefix={<SyncOutlined style={{ color: "#1677ff" }} />}
+                />
+              </Col>
+              <Col span={12} style={{ padding: 20 }}>
+                <Statistic
+                  title="Delivered"
+                  value={stats.orders.delivered}
+                  formatter={(v) => formatNumber(v)}
+                  prefix={<CheckCircleOutlined style={{ color: "#52c41a" }} />}
+                />
+              </Col>
+            </Row>
+
+            <List
+              header={
+                <Text strong style={{ paddingLeft: 4 }}>
+                  Recent orders
+                </Text>
+              }
+              dataSource={ADMIN_RECENT_ORDERS}
+              style={{ padding: "0 20px 8px" }}
+              renderItem={(order) => {
+                const meta = ORDER_STATUS_META[order.status] || ORDER_STATUS_META.pending;
+                return (
+                  <List.Item
+                    actions={[
+                      <Button
+                        key="view"
+                        type="default"
+                        size="small"
+                        onClick={() => router.push("/admin/order-management")}
+                      >
+                        View
+                      </Button>,
+                    ]}
+                  >
+                    <List.Item.Meta
+                      title={
+                        <Space size={8} wrap>
+                          <Text strong>{order.id}</Text>
+                          <Tag color={meta.color} style={{ margin: 0 }}>
+                            {meta.label}
+                          </Tag>
+                        </Space>
+                      }
+                      description={
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {order.buyer} · {formatPrice(order.total, "INR")} ·{" "}
+                          {dayjs(order.placedAt).format("DD MMM")}
+                        </Text>
+                      }
+                    />
+                  </List.Item>
+                );
+              }}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={12} xl={8}>
+          <Card
+            title={
+              <Space>
+                <TagsOutlined />
+                <span>Category Management</span>
+                <Tag color="geekblue">{formatNumber(stats.categories.total)}</Tag>
+              </Space>
+            }
+            extra={
+              <Link onClick={() => router.push("/admin/category-management")}>
+                View all <RightOutlined style={{ fontSize: 10 }} />
+              </Link>
+            }
+            styles={{ body: { padding: 0 } }}
+            style={{ height: "100%" }}
+          >
+            <Row>
+              <Col span={12} style={{ borderRight: "1px solid #f0f0f0", padding: 20 }}>
+                <Statistic
+                  title="Active"
+                  value={stats.categories.active}
+                  formatter={(v) => formatNumber(v)}
+                  prefix={<CheckCircleOutlined style={{ color: "#52c41a" }} />}
+                />
+              </Col>
+              <Col span={12} style={{ padding: 20 }}>
+                <Statistic
+                  title="Inactive"
+                  value={stats.categories.inactive}
+                  formatter={(v) => formatNumber(v)}
+                  prefix={<StopOutlined style={{ color: "#8c8c8c" }} />}
+                />
+              </Col>
+            </Row>
+
+            <List
+              header={
+                <Text strong style={{ paddingLeft: 4 }}>
+                  Top categories
+                </Text>
+              }
+              dataSource={ADMIN_CATEGORIES}
+              style={{ padding: "0 20px 8px" }}
+              renderItem={(category) => {
+                const meta = CATEGORY_STATUS_META[category.status] || CATEGORY_STATUS_META.active;
+                return (
+                  <List.Item
+                    actions={[
+                      <Button
+                        key="view"
+                        type="default"
+                        size="small"
+                        onClick={() => router.push("/admin/category-management")}
+                      >
+                        View
+                      </Button>,
+                    ]}
+                  >
+                    <List.Item.Meta
+                      avatar={<Avatar shape="square" src={category.image} icon={<TagsOutlined />} />}
+                      title={
+                        <Space size={8} wrap>
+                          <span>{category.name}</span>
+                          <Tag color={meta.color} style={{ margin: 0 }}>
+                            {meta.label}
+                          </Tag>
+                        </Space>
+                      }
+                      description={
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {formatNumber(category.productsCount)} products · updated{" "}
+                          {dayjs(category.updatedAt).format("DD MMM")}
+                        </Text>
+                      }
+                    />
+                  </List.Item>
+                );
+              }}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={12} xl={8}>
+          <Card
+            title={
+              <Space>
+                <PictureOutlined />
+                <span>Banner Management</span>
+                <Tag color="magenta">{formatNumber(stats.banners.total)}</Tag>
+              </Space>
+            }
+            extra={
+              <Link onClick={() => router.push("/admin/banner-management")}>
+                View all <RightOutlined style={{ fontSize: 10 }} />
+              </Link>
+            }
+            styles={{ body: { padding: 0 } }}
+            style={{ height: "100%" }}
+          >
+            <Row>
+              <Col span={12} style={{ borderRight: "1px solid #f0f0f0", padding: 20 }}>
+                <Statistic
+                  title="Active"
+                  value={stats.banners.active}
+                  formatter={(v) => formatNumber(v)}
+                  prefix={<CheckCircleOutlined style={{ color: "#52c41a" }} />}
+                />
+              </Col>
+              <Col span={12} style={{ padding: 20 }}>
+                <Statistic
+                  title="Scheduled"
+                  value={stats.banners.scheduled}
+                  formatter={(v) => formatNumber(v)}
+                  prefix={<CalendarOutlined style={{ color: "#faad14" }} />}
+                />
+              </Col>
+            </Row>
+
+            <List
+              header={
+                <Text strong style={{ paddingLeft: 4 }}>
+                  Latest banners
+                </Text>
+              }
+              dataSource={ADMIN_RECENT_BANNERS}
+              style={{ padding: "0 20px 8px" }}
+              renderItem={(banner) => {
+                const meta = BANNER_STATUS_META[banner.status] || BANNER_STATUS_META.active;
+                return (
+                  <List.Item
+                    actions={[
+                      <Button
+                        key="view"
+                        type="default"
+                        size="small"
+                        onClick={() => router.push("/admin/banner-management")}
+                      >
+                        View
+                      </Button>,
+                    ]}
+                  >
+                    <List.Item.Meta
+                      avatar={<Avatar shape="square" src={banner.image} icon={<PictureOutlined />} />}
+                      title={
+                        <Space size={8} wrap>
+                          <span>{banner.title}</span>
+                          <Tag color={meta.color} style={{ margin: 0 }}>
+                            {meta.label}
+                          </Tag>
+                        </Space>
+                      }
+                      description={
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {banner.placement} · updated{" "}
+                          {dayjs(banner.updatedAt).format("DD MMM")}
+                        </Text>
+                      }
+                    />
+                  </List.Item>
+                );
+              }}
             />
           </Card>
         </Col>
