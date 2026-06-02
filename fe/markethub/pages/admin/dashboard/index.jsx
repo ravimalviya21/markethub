@@ -114,7 +114,7 @@ export default function AdminDashboardPage() {
       </Text>
 
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-        <Col xs={24} sm={12} xl={6}>
+        <Col xs={24} sm={12} xl={8}>
           <KpiCard
             icon={<TeamOutlined />}
             iconBg="#1677ff"
@@ -133,7 +133,7 @@ export default function AdminDashboardPage() {
           />
         </Col>
 
-        <Col xs={24} sm={12} xl={6}>
+        <Col xs={24} sm={12} xl={8}>
           <KpiCard
             icon={<ShoppingOutlined />}
             iconBg="#722ed1"
@@ -150,7 +150,7 @@ export default function AdminDashboardPage() {
           />
         </Col>
 
-        <Col xs={24} sm={12} xl={6}>
+        <Col xs={24} sm={12} xl={8}>
           <KpiCard
             icon={<DollarOutlined />}
             iconBg="#13c2c2"
@@ -167,7 +167,7 @@ export default function AdminDashboardPage() {
           />
         </Col>
 
-        <Col xs={24} sm={12} xl={6}>
+        <Col xs={24} sm={12} xl={8}>
           <KpiCard
             icon={<ExclamationCircleOutlined />}
             iconBg="#fa541c"
@@ -188,7 +188,7 @@ export default function AdminDashboardPage() {
       </Row>
 
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col xs={24} lg={12} xl={6}>
+        <Col xs={24} lg={12} xl={8}>
           <Card
             title={
               <Space>
@@ -261,7 +261,7 @@ export default function AdminDashboardPage() {
           </Card>
         </Col>
 
-        <Col xs={24} lg={12} xl={6}>
+        <Col xs={24} lg={12} xl={8}>
           <Card
             title={
               <Space>
@@ -334,7 +334,7 @@ export default function AdminDashboardPage() {
           </Card>
         </Col>
 
-        <Col xs={24} lg={12} xl={6}>
+        <Col xs={24} lg={12} xl={8}>
           <Card
             title={
               <Space>
@@ -405,7 +405,7 @@ export default function AdminDashboardPage() {
           </Card>
         </Col>
 
-        <Col xs={24} lg={12} xl={6}>
+        <Col xs={24} lg={12} xl={8}>
           <Card
             title={
               <Space>
