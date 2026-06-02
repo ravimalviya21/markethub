@@ -22,6 +22,8 @@ import {
   ArrowUpOutlined,
   ArrowDownOutlined,
   RightOutlined,
+  AppstoreOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -31,6 +33,7 @@ import {
   ADMIN_DASHBOARD_STATS,
   ADMIN_PENDING_SELLERS,
   ADMIN_RECENT_DISPUTES,
+  ADMIN_RECENT_PRODUCTS,
   ADMIN_USERS,
 } from "@/utils/dummy";
 import { formatPrice } from "@/utils/customMethods";
@@ -325,6 +328,79 @@ export default function AdminDashboardPage() {
                       <Text type="secondary" style={{ fontSize: 12 }}>
                         {seller.category || "Seller"} · joined{" "}
                         {dayjs(seller.joinedAt).format("DD MMM")}
+                      </Text>
+                    }
+                  />
+                </List.Item>
+              )}
+            />
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={12} xl={8}>
+          <Card
+            title={
+              <Space>
+                <AppstoreOutlined />
+                <span>Product Management</span>
+                <Tag color="cyan">{formatNumber(stats.products.total)}</Tag>
+              </Space>
+            }
+            extra={
+              <Link onClick={() => router.push("/admin/product-management")}>
+                View all <RightOutlined style={{ fontSize: 10 }} />
+              </Link>
+            }
+            styles={{ body: { padding: 0 } }}
+            style={{ height: "100%" }}
+          >
+            <Row>
+              <Col span={12} style={{ borderRight: "1px solid #f0f0f0", padding: 20 }}>
+                <Statistic
+                  title="Active"
+                  value={stats.products.active}
+                  formatter={(v) => formatNumber(v)}
+                  prefix={<AppstoreOutlined style={{ color: "#13c2c2" }} />}
+                />
+              </Col>
+              <Col span={12} style={{ padding: 20 }}>
+                <Statistic
+                  title="Pending"
+                  value={stats.products.pending}
+                  formatter={(v) => formatNumber(v)}
+                  prefix={<ClockCircleOutlined style={{ color: "#fa8c16" }} />}
+                />
+              </Col>
+            </Row>
+
+            <List
+              header={
+                <Text strong style={{ paddingLeft: 4 }}>
+                  Recently added
+                </Text>
+              }
+              dataSource={ADMIN_RECENT_PRODUCTS}
+              style={{ padding: "0 20px 8px" }}
+              renderItem={(product) => (
+                <List.Item
+                  actions={[
+                    <Button
+                      key="view"
+                      type="default"
+                      size="small"
+                      onClick={() => router.push("/admin/product-management")}
+                    >
+                      View
+                    </Button>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    avatar={<Avatar shape="square" src={product.image} icon={<AppstoreOutlined />} />}
+                    title={product.name}
+                    description={
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        {product.category} · {product.sellerName} ·{" "}
+                        {dayjs(product.addedAt).format("DD MMM")}
                       </Text>
                     }
                   />

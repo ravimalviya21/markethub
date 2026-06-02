@@ -338,6 +338,11 @@ export const ADMIN_DASHBOARD_STATS = {
     sellerRegistrations: 27,
     products: 143,
   },
+  products: {
+    total: 12480,
+    active: 12337,
+    pending: 143,
+  },
   disputes: {
     active: 18,
     urgent: 4,
@@ -534,6 +539,39 @@ export const ADMIN_USERS = [
     ordersCount: 5,
     totalSpend: 19900,
     location: "Ahmedabad, Gujarat",
+  },
+];
+
+export const ADMIN_RECENT_PRODUCTS = [
+  {
+    id: "PRD-50124",
+    name: "Aurora Linen Bedsheet Set",
+    image: "https://picsum.photos/seed/prod-aurora/200/200",
+    category: "Home & Living",
+    sellerName: "Aurora Home Decor",
+    price: 2499,
+    status: "active",
+    addedAt: "2026-05-28T11:20:00.000Z",
+  },
+  {
+    id: "PRD-50118",
+    name: "PeakFit Resistance Band Kit",
+    image: "https://picsum.photos/seed/prod-peakfit/200/200",
+    category: "Sports & Fitness",
+    sellerName: "PeakFit Sports",
+    price: 1299,
+    status: "pending",
+    addedAt: "2026-05-27T08:45:00.000Z",
+  },
+  {
+    id: "PRD-50109",
+    name: "Lumen Ambient Floor Lamp",
+    image: "https://picsum.photos/seed/prod-lumen/200/200",
+    category: "Electronics",
+    sellerName: "Lumen Electronics",
+    price: 3899,
+    status: "active",
+    addedAt: "2026-05-25T15:10:00.000Z",
   },
 ];
 
