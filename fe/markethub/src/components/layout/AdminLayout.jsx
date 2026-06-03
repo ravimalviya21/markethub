@@ -28,7 +28,7 @@ const AdminLayout = ({ children, maxWidth = 1280 }) => {
       key: "users",
       icon: <TeamOutlined />,
       label: "Users",
-      onClick: () => router.push("/admin/users"),
+      onClick: () => router.push("/admin/user-management"),
     },
     {
       key: "orders",

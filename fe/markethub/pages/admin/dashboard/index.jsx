@@ -229,7 +229,7 @@ export default function AdminDashboardPage() {
               </Space>
             }
             extra={
-              <Link onClick={() => router.push("/admin/users")}>
+              <Link onClick={() => router.push("/admin/user-management")}>
                 View all <RightOutlined style={{ fontSize: 10 }} />
               </Link>
             }
@@ -270,7 +270,7 @@ export default function AdminDashboardPage() {
                       key="view"
                       type="default"
                       size="small"
-                      onClick={() => router.push("/admin/users")}
+                      onClick={() => router.push("/admin/user-management")}
                     >
                       View
                     </Button>,
