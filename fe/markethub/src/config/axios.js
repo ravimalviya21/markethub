@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = process.env.BACKEND_URL || "http://localhost:3002/api/v1";
+const BASE_URL = process.env.BACKEND_URL || "http://localhost:3005/api/v1";
 
 let accessToken = null;
 
