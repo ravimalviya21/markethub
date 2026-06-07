@@ -44,7 +44,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = () => {
-    const apiBase = process.env.BACKEND_URL || "http://localhost:3002/api/v1";
+    const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002/api/v1";
     window.location.href = `${apiBase}/auth/google`;
   };
 
