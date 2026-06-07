@@ -1,7 +1,7 @@
+require("dotenv").config();
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
-require("dotenv").config();
 const app = express();
 const dbHealth = require("./utils/dbHealth");
 const pool = require('./config/db');
