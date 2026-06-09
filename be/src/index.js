@@ -11,6 +11,13 @@ require("./worker/email.worker");
 const PORT = process.env.PORT || 3003;
 dbHealth();
 
+
+app.use((req, res, next) => {
+    console.log("CORS_ORIGIN env:", process.env.CORS_ORIGIN);
+    console.log("Request origin:", req.headers.origin);
+    next();
+});
+
 app.use(
     cors({
         origin: process.env.CORS_ORIGIN || "http://localhost:3000",
