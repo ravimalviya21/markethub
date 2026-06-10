@@ -1738,6 +1738,59 @@ export const BRAND_HIGHLIGHTS = [
   { id: "brand-6", name: "Adidas", image: "https://picsum.photos/seed/brand-adidas/200/200", tagline: "Sportswear" },
 ];
 
+export const BUYER_CART = [
+  {
+    id: "rec-1",
+    image: "https://picsum.photos/seed/rec-1/600/600",
+    title: "Wireless Noise Cancelling Headphones",
+    seller: "Sony Official Store",
+    price: 4999,
+    originalPrice: 7999,
+    quantity: 1,
+    maxQuantity: 5,
+    inStock: true,
+  },
+  {
+    id: "deal-3",
+    image: "https://picsum.photos/seed/deal-3/600/600",
+    title: "Robotic Vacuum Cleaner",
+    seller: "HomeBot",
+    price: 14999,
+    originalPrice: 24999,
+    quantity: 1,
+    maxQuantity: 3,
+    inStock: true,
+  },
+  {
+    id: "rec-4",
+    image: "https://picsum.photos/seed/rec-4/600/600",
+    title: "Cotton Casual T-Shirt",
+    seller: "Urban Threads",
+    price: 599,
+    originalPrice: 999,
+    quantity: 2,
+    maxQuantity: 10,
+    inStock: true,
+  },
+  {
+    id: "deal-4",
+    image: "https://picsum.photos/seed/deal-4/600/600",
+    title: "Bluetooth Speaker — Waterproof",
+    seller: "BoomBox Audio",
+    price: 1799,
+    originalPrice: 3499,
+    quantity: 1,
+    maxQuantity: 4,
+    inStock: false,
+  },
+];
+
+export const CART_COUPONS = [
+  { code: "WELCOME10", description: "10% off your first order", type: "percent", value: 10, maxDiscount: 500 },
+  { code: "SAVE200", description: "Flat ₹200 off on orders above ₹1,999", type: "flat", value: 200, minOrder: 1999 },
+  { code: "FREESHIP", description: "Free shipping on any order", type: "shipping", value: 0 },
+];
+
 export const BUYER_WISHLIST = [
   {
     id: "rec-1",
