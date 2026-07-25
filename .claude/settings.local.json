@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node src/index.js)",
+      "Bash(pkill -f \"node dist/index.js\")",
+      "Bash(pkill -f \"node src/index.js\")",
+      "Bash(rm -rf dist)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(cp validations/auth.validation.js validations/auth.validation.ts)",
+      "Bash(rm dummy.js validations/auth.validation.js config/axios.js contants/endPoints.js services/auth.service.js utils/customMethods.js)",
+      "Bash(tee /tmp/tsc_out.txt)",
+      "Bash(cat /tmp/tsc_out.txt)",
+      "Read(//private/tmp/**)",
+      "Bash(tee /tmp/tsc_out2.txt)",
+      "Bash(npx next *)",
+      "Bash(curl -s -o /dev/null -w \"index: %{http_code}\\\\n\" http://localhost:3999/)",
+      "Bash(curl -s -o /dev/null -w \"login: %{http_code}\\\\n\" http://localhost:3999/auth/login)",
+      "Bash(curl -s -o /dev/null -w \"buyer/dashboard: %{http_code}\\\\n\" http://localhost:3999/buyer/dashboard)",
+      "Bash(curl -s -o /dev/null -w \"admin/dashboard: %{http_code}\\\\n\" http://localhost:3999/admin/dashboard)",
+      "Bash(pkill -f \"next dev -p 3999\")"
+    ]
+  }
+}
