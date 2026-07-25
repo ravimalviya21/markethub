@@ -4,6 +4,7 @@ import SearchBox from "./SearchBox";
 import LocationChanger from "./LocationChanger";
 import ProfileMenu, { HeaderUser } from "./ProfileMenu";
 import CartButton from "./CartButton";
+import { HeaderRole, HeaderSlots, resolveHeaderSlots } from "./config";
 
 const { Header: AntHeader } = Layout;
 
@@ -13,9 +14,8 @@ type MenuItem = NonNullable<MenuProps["items"]>[number] & {
 };
 
 interface HeaderProps {
-  showSearch?: boolean;
-  showLocation?: boolean;
-  showCart?: boolean;
+  role?: HeaderRole;
+  slots?: Partial<HeaderSlots>;
   logoHref?: string;
   user?: HeaderUser;
   profileMenuItems?: MenuItem[];
@@ -32,9 +32,8 @@ interface HeaderProps {
 }
 
 const Header = ({
-  showSearch = true,
-  showLocation = true,
-  showCart = true,
+  role,
+  slots,
   logoHref = "/",
   user,
   profileMenuItems = [],
@@ -49,6 +48,8 @@ const Header = ({
   onSelectProfileItem,
   onCartClick,
 }: HeaderProps) => {
+  const visible = resolveHeaderSlots(role, slots);
+
   return (
     <AntHeader
       style={{
@@ -66,11 +67,13 @@ const Header = ({
         gap: 24,
       }}
     >
-      <div style={{ flexShrink: 0 }}>
-        <Logo href={logoHref} />
-      </div>
+      {visible.logo && (
+        <div style={{ flexShrink: 0 }}>
+          <Logo href={logoHref} />
+        </div>
+      )}
 
-      {showSearch && (
+      {visible.searchBar && (
         <div style={{ flex: 1, maxWidth: 720 }}>
           <SearchBox
             suggestions={searchSuggestions}
@@ -89,7 +92,7 @@ const Header = ({
           flexShrink: 0,
         }}
       >
-        {showLocation && (
+        {visible.locationChanger && (
           <LocationChanger
             locations={locations}
             value={location}
@@ -97,12 +100,14 @@ const Header = ({
             onChange={onChangeLocation}
           />
         )}
-        <ProfileMenu
-          user={user}
-          items={profileMenuItems}
-          onSelect={onSelectProfileItem}
-        />
-        {showCart && (
+        {visible.profileMenu && (
+          <ProfileMenu
+            user={user}
+            items={profileMenuItems}
+            onSelect={onSelectProfileItem}
+          />
+        )}
+        {visible.cart && (
           <CartButton count={cartCount} onClick={onCartClick} />
         )}
       </div>

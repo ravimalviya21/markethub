@@ -9,7 +9,6 @@ import {
   Empty,
   Image,
   Input as AntInput,
-  Layout,
   Modal,
   Row,
   Segmented,
@@ -25,22 +24,17 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
   EnvironmentOutlined,
-  HeartOutlined,
   HomeOutlined,
-  LogoutOutlined,
   RollbackOutlined,
   SearchOutlined,
-  ShoppingOutlined,
   TruckOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
-import Header from "@/components/layout/Header";
+import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui";
 import { BUYER_ORDERS, USER_PROFILE } from "@/utils/dummy";
 
-const { Content } = Layout;
 const { Title, Text } = Typography;
 
 type OrderStatus = "pending" | "confirmed" | "shipped" | "delivered" | "cancelled" | "returned";
@@ -433,35 +427,6 @@ export default function BuyerOrdersPage() {
   const defaultAddress =
     user.addresses.find((a) => a.isDefault) || user.addresses[0];
 
-  const profileMenuItems = [
-    {
-      key: "profile",
-      icon: <UserOutlined />,
-      label: "My Profile",
-      onClick: () => router.push("/profile"),
-    },
-    {
-      key: "orders",
-      icon: <ShoppingOutlined />,
-      label: "My Orders",
-      onClick: () => router.push("/buyer/orders"),
-    },
-    {
-      key: "wishlist",
-      icon: <HeartOutlined />,
-      label: "Wishlist",
-      onClick: () => router.push("/buyer/wishlist"),
-    },
-    { type: "divider" as const },
-    {
-      key: "logout",
-      icon: <LogoutOutlined />,
-      label: "Log out",
-      danger: true,
-      onClick: () => router.push("/auth/login"),
-    },
-  ];
-
   const counts = useMemo(() => {
     const acc: Record<string, number> = { all: orders.length };
     for (const o of orders) acc[o.status] = (acc[o.status] || 0) + 1;
@@ -534,24 +499,15 @@ export default function BuyerOrdersPage() {
   }));
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#f5f7fb" }}>
-      <Header
-        user={{ name: `${user.firstName} ${user.lastName}` }}
-        profileMenuItems={profileMenuItems}
-        cartCount={0}
-        onCartClick={() => router.push("/buyer/cart")}
-        onSearch={(term) => console.log("search:", term)}
-        onChangeLocation={(loc) => console.log("location:", loc)}
-      />
-      <Content>
-        <div
-          style={{
-            padding: 24,
-            maxWidth: 1100,
-            width: "100%",
-            margin: "0 auto",
-          }}
-        >
+    <AppLayout
+      role="buyer"
+      maxWidth={1100}
+      cartCount={0}
+      onCartClick={() => router.push("/buyer/cart")}
+      onSearch={(term) => console.log("search:", term)}
+      onChangeLocation={(loc) => console.log("location:", loc)}
+    >
+        <div>
           <Title level={3} style={{ marginTop: 8 }}>My Orders</Title>
           <Text type="secondary">
             Track, manage and re-order from your purchase history.
@@ -615,7 +571,6 @@ export default function BuyerOrdersPage() {
             )}
           </div>
         </div>
-      </Content>
 
       <OrderDetailModal
         open={Boolean(selected)}
@@ -623,6 +578,6 @@ export default function BuyerOrdersPage() {
         address={defaultAddress}
         onCancel={handleCloseModal}
       />
-    </Layout>
+    </AppLayout>
   );
 }

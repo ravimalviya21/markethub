@@ -9,7 +9,6 @@ import {
   Empty,
   Image,
   Input as AntInput,
-  Layout,
   Radio,
   Row,
   Space,
@@ -21,21 +20,17 @@ import {
   EnvironmentOutlined,
   HeartOutlined,
   HomeOutlined,
-  LogoutOutlined,
   MinusOutlined,
   PlusOutlined,
   SafetyCertificateOutlined,
-  ShoppingOutlined,
   TagOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
 
-import Header from "@/components/layout/Header";
+import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui";
 import { BUYER_CART, CART_COUPONS, USER_PROFILE } from "@/utils/dummy";
 import { formatPrice } from "@/utils/customMethods";
 
-const { Content } = Layout;
 const { Title, Text } = Typography;
 
 const computeTotals = (items: any[], coupon: any) => {
@@ -83,35 +78,6 @@ export default function BuyerCartPage() {
   const [addressId, setAddressId] = useState(
     user.addresses.find((a) => a.isDefault)?.id || user.addresses[0]?.id
   );
-
-  const profileMenuItems = [
-    {
-      key: "profile",
-      icon: <UserOutlined />,
-      label: "My Profile",
-      onClick: () => router.push("/profile"),
-    },
-    {
-      key: "orders",
-      icon: <ShoppingOutlined />,
-      label: "My Orders",
-      onClick: () => router.push("/buyer/orders"),
-    },
-    {
-      key: "wishlist",
-      icon: <HeartOutlined />,
-      label: "Wishlist",
-      onClick: () => router.push("/buyer/wishlist"),
-    },
-    { type: "divider" as const },
-    {
-      key: "logout",
-      icon: <LogoutOutlined />,
-      label: "Log out",
-      danger: true,
-      onClick: () => router.push("/auth/login"),
-    },
-  ];
 
   const totals = useMemo(
     () => computeTotals(items, appliedCoupon),
@@ -198,24 +164,14 @@ export default function BuyerCartPage() {
   };
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#f5f7fb" }}>
-      <Header
-        user={{ name: `${user.firstName} ${user.lastName}` }}
-        profileMenuItems={profileMenuItems}
-        cartCount={totalQuantity}
-        onCartClick={() => router.push("/buyer/cart")}
-        onSearch={(term) => console.log("search:", term)}
-        onChangeLocation={(loc) => console.log("location:", loc)}
-      />
-      <Content>
-        <div
-          style={{
-            padding: 24,
-            maxWidth: 1280,
-            width: "100%",
-            margin: "0 auto",
-          }}
-        >
+    <AppLayout
+      role="buyer"
+      cartCount={totalQuantity}
+      onCartClick={() => router.push("/buyer/cart")}
+      onSearch={(term) => console.log("search:", term)}
+      onChangeLocation={(loc) => console.log("location:", loc)}
+    >
+        <div>
           <Title level={3} style={{ marginTop: 8 }}>
             My Cart
           </Title>
@@ -655,7 +611,6 @@ export default function BuyerCartPage() {
             </Row>
           )}
         </div>
-      </Content>
-    </Layout>
+    </AppLayout>
   );
 }

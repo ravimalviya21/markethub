@@ -11,9 +11,6 @@ interface AuthLayoutProps {
   footer?: ReactNode;
 }
 
-/**
- * Shared layout for auth pages (login, signup, etc.).
- */
 const AuthLayout = ({ title, subtitle, children, footer }: AuthLayoutProps) => {
   return (
     <div

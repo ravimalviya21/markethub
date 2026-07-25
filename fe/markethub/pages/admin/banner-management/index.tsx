@@ -42,7 +42,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
-import AdminLayout from "@/components/layout/AdminLayout";
+import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui";
 import { ADMIN_BANNERS } from "@/utils/dummy";
 
@@ -722,7 +722,7 @@ export default function AdminBannerManagementPage() {
   ];
 
   return (
-    <AdminLayout maxWidth={1440}>
+    <AppLayout role="admin" maxWidth={1440}>
       <Row align="middle" justify="space-between" gutter={[16, 16]}>
         <Col>
           <Title level={3} style={{ marginTop: 8, marginBottom: 0 }}>
@@ -907,6 +907,6 @@ export default function AdminBannerManagementPage() {
           setEditing(null);
         }}
       />
-    </AdminLayout>
+    </AppLayout>
   );
 }

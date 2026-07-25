@@ -40,7 +40,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
-import AdminLayout from "@/components/layout/AdminLayout";
+import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui";
 import { ADMIN_SELLERS, ADMIN_PRODUCTS } from "@/utils/dummy";
 import { formatPrice } from "@/utils/customMethods";
@@ -515,7 +515,7 @@ export default function AdminApprovalsPage() {
   ];
 
   return (
-    <AdminLayout maxWidth={1440}>
+    <AppLayout role="admin" maxWidth={1440}>
       <Row align="middle" justify="space-between" gutter={[16, 16]}>
         <Col>
           <Title level={3} style={{ marginTop: 8, marginBottom: 0 }}>
@@ -660,6 +660,6 @@ export default function AdminApprovalsPage() {
         onApprove={handleApprove}
         onReject={handleReject}
       />
-    </AdminLayout>
+    </AppLayout>
   );
 }

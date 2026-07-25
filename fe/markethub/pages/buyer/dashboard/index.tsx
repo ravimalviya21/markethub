@@ -1,14 +1,8 @@
 import { useRouter } from "next/router";
-import { Avatar, Col, Layout, Row, Typography } from "antd";
-import {
-  UserOutlined,
-  ShoppingOutlined,
-  HeartOutlined,
-  LogoutOutlined,
-  RightOutlined,
-} from "@ant-design/icons";
+import { Avatar, Col, Row, Typography } from "antd";
+import { RightOutlined } from "@ant-design/icons";
 
-import Header from "@/components/layout/Header";
+import AppLayout from "@/components/layout/AppLayout";
 import { BannerCarousel, ProductCard } from "@/components/ui";
 import {
   DASHBOARD_BANNERS,
@@ -17,7 +11,6 @@ import {
   BRAND_HIGHLIGHTS,
 } from "@/utils/dummy";
 
-const { Content } = Layout;
 const { Title, Text, Link } = Typography;
 
 interface SectionHeaderProps {
@@ -107,46 +100,15 @@ const BrandStrip = ({ brands, onBrandClick }: BrandStripProps) => (
 export default function BuyerDashboardPage() {
   const router = useRouter();
 
-  const profileMenuItems = [
-    {
-      key: "profile",
-      icon: <UserOutlined />,
-      label: "My Profile",
-      onClick: () => router.push("/profile"),
-    },
-    {
-      key: "orders",
-      icon: <ShoppingOutlined />,
-      label: "My Orders",
-      onClick: () => router.push("/buyer/orders"),
-    },
-    {
-      key: "wishlist",
-      icon: <HeartOutlined />,
-      label: "Wishlist",
-      onClick: () => router.push("/buyer/wishlist"),
-    },
-    { type: "divider" as const },
-    {
-      key: "logout",
-      icon: <LogoutOutlined />,
-      label: "Log out",
-      danger: true,
-      onClick: () => router.push("/auth/login"),
-    },
-  ];
-
   return (
-    <Layout style={{ minHeight: "100vh", background: "#f5f7fb" }}>
-      <Header
-        user={{ name: "Buyer" }}
-        profileMenuItems={profileMenuItems}
-        cartCount={0}
-        onCartClick={() => router.push("/buyer/cart")}
-        onSearch={(term) => console.log("search:", term)}
-        onChangeLocation={(loc) => console.log("location:", loc)}
-      />
-      <Content>
+    <AppLayout
+      role="buyer"
+      contentStyle={{ padding: 0, maxWidth: "none" }}
+      cartCount={0}
+      onCartClick={() => router.push("/buyer/cart")}
+      onSearch={(term) => console.log("search:", term)}
+      onChangeLocation={(loc) => console.log("location:", loc)}
+    >
         <div style={{ padding: "24px 24px 0" }}>
           <BannerCarousel banners={DASHBOARD_BANNERS} height={320} controls="both" />
         </div>
@@ -189,7 +151,6 @@ export default function BuyerDashboardPage() {
             />
           </section>
         </div>
-      </Content>
-    </Layout>
+    </AppLayout>
   );
 }

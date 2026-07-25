@@ -6,7 +6,6 @@ import {
   Col,
   Empty,
   Input as AntInput,
-  Layout,
   Row,
   Segmented,
   Space,
@@ -14,20 +13,15 @@ import {
 } from "antd";
 import {
   DeleteOutlined,
-  HeartOutlined,
-  LogoutOutlined,
   SearchOutlined,
   ShoppingCartOutlined,
-  ShoppingOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
-import Header from "@/components/layout/Header";
+import AppLayout from "@/components/layout/AppLayout";
 import { Button, ProductCard } from "@/components/ui";
-import { BUYER_WISHLIST, USER_PROFILE } from "@/utils/dummy";
+import { BUYER_WISHLIST } from "@/utils/dummy";
 
-const { Content } = Layout;
 const { Title, Text } = Typography;
 
 const FILTER_OPTIONS = [
@@ -42,37 +36,6 @@ export default function BuyerWishlistPage() {
   const [items, setItems] = useState(BUYER_WISHLIST);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
-
-  const user = USER_PROFILE;
-
-  const profileMenuItems = [
-    {
-      key: "profile",
-      icon: <UserOutlined />,
-      label: "My Profile",
-      onClick: () => router.push("/profile"),
-    },
-    {
-      key: "orders",
-      icon: <ShoppingOutlined />,
-      label: "My Orders",
-      onClick: () => router.push("/buyer/orders"),
-    },
-    {
-      key: "wishlist",
-      icon: <HeartOutlined />,
-      label: "Wishlist",
-      onClick: () => router.push("/buyer/wishlist"),
-    },
-    { type: "divider" as const },
-    {
-      key: "logout",
-      icon: <LogoutOutlined />,
-      label: "Log out",
-      danger: true,
-      onClick: () => router.push("/auth/login"),
-    },
-  ];
 
   const counts = useMemo(() => {
     const acc = { all: items.length, inStock: 0, outOfStock: 0 };
@@ -142,24 +105,14 @@ export default function BuyerWishlistPage() {
   }));
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#f5f7fb" }}>
-      <Header
-        user={{ name: `${user.firstName} ${user.lastName}` }}
-        profileMenuItems={profileMenuItems}
-        cartCount={0}
-        onCartClick={() => router.push("/buyer/cart")}
-        onSearch={(term) => console.log("search:", term)}
-        onChangeLocation={(loc) => console.log("location:", loc)}
-      />
-      <Content>
-        <div
-          style={{
-            padding: 24,
-            maxWidth: 1280,
-            width: "100%",
-            margin: "0 auto",
-          }}
-        >
+    <AppLayout
+      role="buyer"
+      cartCount={0}
+      onCartClick={() => router.push("/buyer/cart")}
+      onSearch={(term) => console.log("search:", term)}
+      onChangeLocation={(loc) => console.log("location:", loc)}
+    >
+        <div>
           <Row
             justify="space-between"
             align="middle"
@@ -274,7 +227,6 @@ export default function BuyerWishlistPage() {
             )}
           </div>
         </div>
-      </Content>
-    </Layout>
+    </AppLayout>
   );
 }

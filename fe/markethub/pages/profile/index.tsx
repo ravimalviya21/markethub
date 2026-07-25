@@ -8,7 +8,6 @@ import {
   Checkbox,
   Col,
   DatePicker,
-  Layout,
   Modal,
   Radio,
   Row,
@@ -24,18 +23,16 @@ import {
   EnvironmentOutlined,
   HomeOutlined,
   LockOutlined,
-  LogoutOutlined,
   PlusOutlined,
-  ShoppingOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
-import Header from "@/components/layout/Header";
+import AppLayout from "@/components/layout/AppLayout";
+import { HeaderRole } from "@/components/layout/Header/config";
 import { Input, Button } from "@/components/ui";
 import { USER_PROFILE } from "@/utils/dummy";
 
-const { Content } = Layout;
 const { Title, Text } = Typography;
 
 const ROLE_LABEL: Record<string, string> = {
@@ -484,29 +481,6 @@ export default function ProfilePage() {
   const [addressModalOpen, setAddressModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<any>(null);
 
-  const profileMenuItems = [
-    {
-      key: "profile",
-      icon: <UserOutlined />,
-      label: "My Profile",
-      onClick: () => router.push("/profile"),
-    },
-    {
-      key: "orders",
-      icon: <ShoppingOutlined />,
-      label: "My Orders",
-      onClick: () => router.push(`/${user.role}/orders`),
-    },
-    { type: "divider" as const },
-    {
-      key: "logout",
-      icon: <LogoutOutlined />,
-      label: "Log out",
-      danger: true,
-      onClick: () => router.push("/auth/login"),
-    },
-  ];
-
   const handleSavePersonal = (values: any) => {
     setUser((prev: any) => ({ ...prev, ...values, dob: values.dob ? values.dob.format("YYYY-MM-DD") : prev.dob }));
     message.success("Profile updated");
@@ -591,17 +565,15 @@ export default function ProfilePage() {
   ];
 
   return (
-    <Layout style={{ minHeight: "100vh", background: "#f5f7fb" }}>
-      <Header
-        user={{ name: `${user.firstName} ${user.lastName}` }}
-        profileMenuItems={profileMenuItems}
-        cartCount={0}
-        onCartClick={() => router.push(`/${user.role}/cart`)}
-        onSearch={(term) => console.log("search:", term)}
-        onChangeLocation={(loc) => console.log("location:", loc)}
-      />
-      <Content>
-        <div style={{ padding: 24, maxWidth: 1100, width: "100%", margin: "0 auto" }}>
+    <AppLayout
+      role={user.role as HeaderRole}
+      maxWidth={1100}
+      cartCount={0}
+      onCartClick={() => router.push(`/${user.role}/cart`)}
+      onSearch={(term) => console.log("search:", term)}
+      onChangeLocation={(loc) => console.log("location:", loc)}
+    >
+        <div>
           <Title level={3} style={{ marginTop: 8 }}>My Profile</Title>
           <Text type="secondary">Manage your account information and preferences.</Text>
 
@@ -615,13 +587,12 @@ export default function ProfilePage() {
             />
           </div>
         </div>
-      </Content>
       <AddressFormModal
         open={addressModalOpen}
         address={editingAddress}
         onCancel={handleAddressCancel}
         onSubmit={handleAddressSubmit}
       />
-    </Layout>
+    </AppLayout>
   );
 }

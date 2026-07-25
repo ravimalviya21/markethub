@@ -32,7 +32,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
-import AdminLayout from "@/components/layout/AdminLayout";
+import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui";
 import {
   ADMIN_CATEGORIES,
@@ -137,7 +137,7 @@ export default function AdminDashboardPage() {
   ).length;
 
   return (
-    <AdminLayout maxWidth={1600}>
+    <AppLayout role="admin" maxWidth={1600}>
       <Title level={3} style={{ marginTop: 8, marginBottom: 0 }}>
         Dashboard
       </Title>
@@ -820,6 +820,6 @@ export default function AdminDashboardPage() {
           </Card>
         </Col>
       </Row>
-    </AdminLayout>
+    </AppLayout>
   );
 }
