@@ -1,13 +1,13 @@
 import asyncHandler from "../utils/asyncHandler";
 import AuthService from "../services/auth.service";
 import STATUS_CODES from "../contants/statusCode";
-import { setRefreshCookie, clearRefreshCookie, REFRESH_COOKIE_NAME } from "../utils/cookies";
+import { setAuthCookies, clearAuthCookies, REFRESH_COOKIE_NAME } from "../utils/cookies";
 import { GoogleAuthPayload } from "../types/express";
 
 const AuthController = {
     register: asyncHandler(async (req, res) => {
         const response = await AuthService.register(req.body);
-        setRefreshCookie(res, response.refreshToken);
+        setAuthCookies(res, response.accessToken, response.refreshToken);
         res.status(STATUS_CODES.CREATED).json({
             success: true,
             data: {
@@ -28,7 +28,7 @@ const AuthController = {
     findOrCreateWithGoogle: asyncHandler(async (req, res) => {
         const profile = (req.user as GoogleAuthPayload | undefined)?.profile;
         const { accessToken, refreshToken } = await AuthService.findOrCreateWithGoogle({ profile });
-        setRefreshCookie(res, refreshToken);
+        setAuthCookies(res, accessToken, refreshToken);
 
         const redirectUrl = process.env.CORS_ORIGIN;
         if (redirectUrl) {
@@ -44,7 +44,7 @@ const AuthController = {
     }),
     login: asyncHandler(async (req, res) => {
         const response = await AuthService.login(req.body);
-        setRefreshCookie(res, response.refreshToken);
+        setAuthCookies(res, response.accessToken, response.refreshToken);
         res.status(STATUS_CODES.OK).json({
             success: true,
             data: {
@@ -55,7 +55,7 @@ const AuthController = {
     refreshToken: asyncHandler(async (req, res) => {
         const token = req.cookies?.[REFRESH_COOKIE_NAME];
         const response = await AuthService.rotateToken({ token });
-        setRefreshCookie(res, response.refreshToken);
+        setAuthCookies(res, response.accessToken, response.refreshToken);
         res.status(STATUS_CODES.OK).json({
             success: true,
             data: {
@@ -92,7 +92,7 @@ const AuthController = {
     logout: asyncHandler(async (req, res) => {
         const token = req.cookies?.[REFRESH_COOKIE_NAME];
         await AuthService.logout(token);
-        clearRefreshCookie(res);
+        clearAuthCookies(res);
         res.status(STATUS_CODES.OK).json({
             success: true,
             data: { message: "Logged out" },

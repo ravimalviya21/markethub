@@ -18,6 +18,8 @@ services:
     build: ./fe/markethub
     ports:
       - "3000:3000"
+    environment:
+      - BACKEND_ORIGIN=http://backend:3002
     depends_on:
       - backend
 

@@ -1,6 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
-const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002/api/v1";
+// Same-origin by default: proxied to the backend by the rewrite in next.config.ts,
+// so the refresh-token cookie is first-party and no CORS preflight is needed.
+const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "/api/proxy";
 
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
     _retry?: boolean;

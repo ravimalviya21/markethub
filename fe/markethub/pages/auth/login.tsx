@@ -8,6 +8,7 @@ import { AxiosError } from "axios";
 import AuthLayout from "@/components/layout/AuthLayout";
 import { Input, Button, GoogleAuthButton } from "@/components/ui";
 import { loginSchema } from "@/validations/auth.validation";
+import { getDashboardForRole, getRoleFromToken, safeInternalPath } from "@/utils/auth";
 import { useLogin } from "../../src/services/auth.service";
 
 const { Text } = Typography;
@@ -36,9 +37,12 @@ export default function LoginPage() {
     try {
       const response = await loginMutation.mutateAsync(values);
       if (response?.success) {
-        router.push({
-          pathname: "/",
-        });
+        // Prefer the page the proxy bounced us off of, otherwise the role's home.
+        const role = getRoleFromToken(response?.data?.accessToken);
+        const destination =
+          safeInternalPath(router.query.redirect) ?? getDashboardForRole(role);
+        // replace(), so Back doesn't land on the login form again.
+        await router.replace(destination);
       } else {
         message.error(response?.message || "Something went wrong");
       }
@@ -51,7 +55,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = () => {
-    const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002/api/v1";
+    const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || "/api/proxy";
     window.location.href = `${apiBase}/auth/google`;
   };
 
