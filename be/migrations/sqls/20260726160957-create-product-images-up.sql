@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS product_images (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    productId INT NOT NULL,
+    url VARCHAR(500) NOT NULL,
+    thumbnailUrl VARCHAR(500),
+    altText VARCHAR(255),
+    sortOrder INT NOT NULL DEFAULT 0,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_product_sort (productId, sortOrder),
+    FOREIGN KEY (productId) REFERENCES products(id) ON DELETE CASCADE
+);

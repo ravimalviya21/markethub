@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    sellerId INT NOT NULL,
+    categoryId INT NULL,
+    description TEXT,
+    slug VARCHAR(255) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    stock INT NOT NULL DEFAULT 0,
+    status ENUM('draft', 'pending', 'approved', 'flagged', 'rejected', 'archived') NOT NULL DEFAULT 'draft',
+    averageRating DECIMAL(2,1) NOT NULL DEFAULT 0.0,
+    reviewsCount INT NOT NULL DEFAULT 0,
+    createdBy VARCHAR(255) NOT NULL,
+    updatedBy VARCHAR(255) NOT NULL,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_slug (slug),
+    INDEX idx_status_category (status, categoryId),
+    INDEX idx_seller_status (sellerId, status),
+    FOREIGN KEY (sellerId) REFERENCES users(id),
+    FOREIGN KEY (categoryId) REFERENCES categories(id) ON DELETE SET NULL
+);
