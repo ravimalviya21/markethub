@@ -27,8 +27,8 @@ export interface CategoryRow {
     displayName: string;
     imageUrl: string | null;
     isActive: boolean;
-    createdBy: string;
-    updatedBy: string;
+    createdBy: number;
+    updatedBy: number;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -42,8 +42,8 @@ export interface BannerRow {
     ctaLink: string;
     displayOrder: number;
     categoryId: number | null;
-    createdBy: string;
-    updatedBy: string;
+    createdBy: number;
+    updatedBy: number;
     createdAt?: Date;
     updatedAt?: Date;
     isActive: boolean;

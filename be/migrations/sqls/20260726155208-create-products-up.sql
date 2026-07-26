@@ -10,13 +10,15 @@ CREATE TABLE IF NOT EXISTS products (
     status ENUM('draft', 'pending', 'approved', 'flagged', 'rejected', 'archived') NOT NULL DEFAULT 'draft',
     averageRating DECIMAL(2,1) NOT NULL DEFAULT 0.0,
     reviewsCount INT NOT NULL DEFAULT 0,
-    createdBy VARCHAR(255) NOT NULL,
-    updatedBy VARCHAR(255) NOT NULL,
+    createdBy INT NOT NULL,
+    updatedBy INT NOT NULL,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_slug (slug),
     INDEX idx_status_category (status, categoryId),
     INDEX idx_seller_status (sellerId, status),
     FOREIGN KEY (sellerId) REFERENCES users(id),
-    FOREIGN KEY (categoryId) REFERENCES categories(id) ON DELETE SET NULL
+    FOREIGN KEY (categoryId) REFERENCES categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (createdBy) REFERENCES users(id),
+    FOREIGN KEY (updatedBy) REFERENCES users(id)
 );

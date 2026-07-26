@@ -7,10 +7,12 @@ CREATE TABLE IF NOT EXISTS banners (
     ctaLink VARCHAR(255) NOT NULL,
     displayOrder TINYINT NOT NULL DEFAULT 0,
     categoryId INT NULL,
-    createdBy VARCHAR(255) NOT NULL,
-    updatedBy VARCHAR(255) NOT NULL,
+    createdBy INT NOT NULL,
+    updatedBy INT NOT NULL,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     isActive BOOLEAN NOT NULL DEFAULT FALSE,
-    FOREIGN KEY (categoryId) REFERENCES categories(id)
+    FOREIGN KEY (categoryId) REFERENCES categories(id),
+    FOREIGN KEY (createdBy) REFERENCES users(id),
+    FOREIGN KEY (updatedBy) REFERENCES users(id)
 );
