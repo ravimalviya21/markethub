@@ -38,7 +38,8 @@ import {
 import dayjs from "dayjs";
 
 import AppLayout from "@/components/layout/AppLayout";
-import { Button, Input } from "@/components/ui";
+import { Button, ImageUploader, Input } from "@/components/ui";
+import { CLOUDINARY_FOLDERS, withCloudinaryTransform } from "@/config/cloudinary";
 import {
   Category,
   useCategories,
@@ -46,7 +47,6 @@ import {
   useUpdateCategory,
 } from "@/services/category.service";
 import {
-  CATEGORY_IMAGE_URL_MAX,
   CategoryFormOutput,
   CategoryFormValues,
   categoryFormSchema,
@@ -63,6 +63,16 @@ const EMPTY_FORM: CategoryFormValues = {
   imageUrl: "",
   isActive: false,
 };
+
+const CategoryThumb = ({ imageUrl }: { imageUrl: string | null }) => (
+  <Avatar
+    shape="square"
+    size={48}
+    src={imageUrl ? withCloudinaryTransform(imageUrl, "w_96,h_96,c_fill,f_auto,q_auto") : undefined}
+    icon={<TagsOutlined />}
+    style={imageUrl ? undefined : { background: "#f5f5f5", color: "#bfbfbf" }}
+  />
+);
 
 const StatusTag = ({ isActive }: { isActive: boolean }) => (
   <Tag color={isActive ? "green" : "default"} style={{ margin: 0 }}>
@@ -132,6 +142,7 @@ const CategoryFormModal = ({
   onClose,
 }: CategoryFormModalProps) => {
   const isEdit = mode === "edit";
+  const [uploading, setUploading] = useState(false);
   const { control, handleSubmit, reset } = useForm<CategoryFormValues, unknown, CategoryFormOutput>({
     resolver: yupResolver(categoryFormSchema),
     defaultValues: EMPTY_FORM,
@@ -160,6 +171,7 @@ const CategoryFormModal = ({
       okText={isEdit ? "Save changes" : "Create category"}
       onOk={handleSubmit(onSubmit)}
       confirmLoading={submitting}
+      okButtonProps={{ disabled: uploading }}
       destroyOnHidden
       width={520}
     >
@@ -213,13 +225,22 @@ const CategoryFormModal = ({
         />
       </div>
 
-      <Input
+      <Controller
         name="imageUrl"
         control={control}
-        label="Image URL"
-        placeholder="https://..."
-        disabled={isEdit}
-        maxLength={CATEGORY_IMAGE_URL_MAX}
+        render={({ field, fieldState: { error } }) => (
+          <ImageUploader
+            value={field.value}
+            onChange={(url) => field.onChange(url ?? "")}
+            label="Image (optional)"
+            disabled={isEdit}
+            error={error?.message}
+            folder={CLOUDINARY_FOLDERS.CATEGORIES}
+            placeholderIcon={<TagsOutlined />}
+            onUploadingChange={setUploading}
+            helperText="Categories without an image fall back to a placeholder icon."
+          />
+        )}
       />
 
       <Controller
@@ -381,12 +402,7 @@ export default function AdminCategoryManagementPage() {
       sorter: (a: Category, b: Category) => a.displayName.localeCompare(b.displayName),
       render: (_: unknown, category: Category) => (
         <Space size={12}>
-          <Avatar
-            shape="square"
-            size={48}
-            src={category.imageUrl}
-            icon={<TagsOutlined />}
-          />
+          <CategoryThumb imageUrl={category.imageUrl} />
           <div style={{ minWidth: 0 }}>
             <a onClick={() => handleEdit(category)} style={{ fontWeight: 500 }}>
               {category.displayName}

@@ -1,7 +1,7 @@
 import * as yup from "yup";
 
 export const CATEGORY_NAME_MAX = 50;
-export const CATEGORY_IMAGE_URL_MAX = 50;
+export const CATEGORY_IMAGE_URL_MAX = 255;
 
 export const categoryFormSchema = yup.object({
   displayName: yup

@@ -3,7 +3,7 @@ import { z } from "zod";
 export const createCategorySchema = z.object({
     parentId: z.number().int().positive().nullable().optional(),
     displayName: z.string().min(1).max(50),
-    imageUrl: z.string().url().max(50).optional(),
+    imageUrl: z.string().url().max(255).optional(),
     isActive: z.boolean().optional().default(false),
 });
 
