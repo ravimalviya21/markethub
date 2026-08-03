@@ -49,6 +49,37 @@ export interface BannerRow {
     isActive: boolean;
 }
 
+export type ProductStatus = "draft" | "pending" | "approved" | "flagged" | "rejected" | "archived";
+
+export interface ProductRow {
+    id: number;
+    name: string;
+    sellerId: number;
+    categoryId: number | null;
+    description: string | null;
+    slug: string;
+    price: number;
+    stock: number;
+    status: ProductStatus;
+    averageRating: number;
+    reviewsCount: number;
+    createdBy: number;
+    updatedBy: number;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+export interface ProductImageRow {
+    id: number;
+    productId: number;
+    url: string;
+    thumbnailUrl: string | null;
+    altText: string | null;
+    sortOrder: number;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 export interface AuthUser {
     id: number;
     name?: string;

@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import dbHealth from "./utils/dbHealth";
 import routes from "./routes/index";
+import errorHandler from "./middleware/errorHandler";
 import passport from "./utils/passport";
 import "./worker/email.worker";
 
@@ -30,6 +31,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(passport.initialize());
 app.use("/api", routes);
+app.use(errorHandler);
 
 app.listen(PORT, () => {
     console.log("Server is running", PORT);

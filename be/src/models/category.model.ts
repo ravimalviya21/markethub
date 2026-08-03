@@ -55,6 +55,14 @@ const CategoryModel = {
         );
         return result.affectedRows;
     },
+    async findById(id: number | string): Promise<CategoryRow | null> {
+        const [rows] = await pool.execute<(CategoryRow & RowDataPacket)[]>(
+            `SELECT * from categories
+            WHERE id = ?`,
+            [id]
+        );
+        return rows[0] || null;
+    },
     async find(): Promise<CategoryRow[]> {
         const [rows] = await pool.execute<(CategoryRow & RowDataPacket)[]>(`
             SELECT * from categories`);

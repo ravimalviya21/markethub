@@ -8,9 +8,12 @@ type ValidationSource = "body" | "query" | "params";
 const validate = (schema: ZodType, source: ValidationSource = "body"): RequestHandler => {
     return (req: Request, res: Response, next: NextFunction) => {
         try {
-            (req as unknown as Record<ValidationSource, unknown>)[source] = schema.parse(
-                req[source]
-            );
+            const parsed = schema.parse(req[source]);
+            if (source === "query") {
+                req.validatedQuery = parsed;
+            } else {
+                (req as unknown as Record<ValidationSource, unknown>)[source] = parsed;
+            }
             next();
         } catch (err) {
             if (err instanceof ZodError) {

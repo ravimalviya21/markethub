@@ -8,6 +8,7 @@ declare global {
     namespace Express {
         interface Request {
             user?: AuthUser | GoogleAuthPayload;
+            validatedQuery?: unknown;
         }
     }
 }
