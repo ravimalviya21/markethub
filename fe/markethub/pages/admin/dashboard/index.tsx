@@ -34,17 +34,18 @@ import dayjs from "dayjs";
 
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui";
-import {
-  ADMIN_CATEGORIES,
-  ADMIN_DASHBOARD_STATS,
-  ADMIN_PENDING_SELLERS,
-  ADMIN_RECENT_BANNERS,
-  ADMIN_RECENT_DISPUTES,
-  ADMIN_RECENT_ORDERS,
-  ADMIN_RECENT_PRODUCTS,
-  ADMIN_USERS,
-} from "@/utils/dummy";
 import { formatPrice } from "@/utils/customMethods";
+
+const EMPTY_STATS = {
+  users: { total: 0, buyers: 0, sellers: 0, newThisWeek: 0, changePct: null },
+  orders: { total: 0, today: 0, changePct: null, processing: 0, delivered: 0 },
+  revenue: { total: 0, currency: "INR", today: 0, changePct: null },
+  pendingApprovals: { total: 0, sellerRegistrations: 0, products: 0 },
+  products: { total: 0, active: 0, pending: 0 },
+  categories: { total: 0, active: 0, inactive: 0 },
+  banners: { total: 0, active: 0, scheduled: 0 },
+  disputes: { active: 0, urgent: 0, resolvedThisWeek: 0 },
+};
 
 const ORDER_STATUS_META: Record<string, { color: string; label: string }> = {
   pending: { color: "default", label: "Pending" },
@@ -124,17 +125,17 @@ const KpiCard = ({ icon, iconBg, title, value, footer }: KpiCardProps) => (
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const stats = ADMIN_DASHBOARD_STATS;
+  const stats = EMPTY_STATS;
   const revenueCurrency = stats.revenue.currency || "INR";
-  const recentUsers = [...ADMIN_USERS]
-    .sort((a, b) => dayjs(b.joinedAt).valueOf() - dayjs(a.joinedAt).valueOf())
-    .slice(0, 3);
-  const recentSellers = ADMIN_USERS.filter((u) => u.role === "seller")
-    .sort((a, b) => dayjs(b.joinedAt).valueOf() - dayjs(a.joinedAt).valueOf())
-    .slice(0, 3);
-  const activeSellers = ADMIN_USERS.filter(
-    (u) => u.role === "seller" && u.status === "active"
-  ).length;
+  const recentUsers: any[] = [];
+  const recentSellers: any[] = [];
+  const recentProducts: any[] = [];
+  const recentOrders: any[] = [];
+  const categories: any[] = [];
+  const recentBanners: any[] = [];
+  const pendingSellers: any[] = [];
+  const recentDisputes: any[] = [];
+  const activeSellers = 0;
 
   return (
     <AppLayout role="admin" maxWidth={1600}>
@@ -408,7 +409,7 @@ export default function AdminDashboardPage() {
                   Recently added
                 </Text>
               }
-              dataSource={ADMIN_RECENT_PRODUCTS}
+              dataSource={recentProducts}
               style={{ padding: "0 20px 8px" }}
               renderItem={(product) => (
                 <List.Item
@@ -481,7 +482,7 @@ export default function AdminDashboardPage() {
                   Recent orders
                 </Text>
               }
-              dataSource={ADMIN_RECENT_ORDERS}
+              dataSource={recentOrders}
               style={{ padding: "0 20px 8px" }}
               renderItem={(order) => {
                 const meta = ORDER_STATUS_META[order.status] || ORDER_STATUS_META.pending;
@@ -563,7 +564,7 @@ export default function AdminDashboardPage() {
                   Top categories
                 </Text>
               }
-              dataSource={ADMIN_CATEGORIES}
+              dataSource={categories}
               style={{ padding: "0 20px 8px" }}
               renderItem={(category) => {
                 const meta = CATEGORY_STATUS_META[category.status] || CATEGORY_STATUS_META.active;
@@ -646,7 +647,7 @@ export default function AdminDashboardPage() {
                   Latest banners
                 </Text>
               }
-              dataSource={ADMIN_RECENT_BANNERS}
+              dataSource={recentBanners}
               style={{ padding: "0 20px 8px" }}
               renderItem={(banner) => {
                 const meta = BANNER_STATUS_META[banner.status] || BANNER_STATUS_META.active;
@@ -727,7 +728,7 @@ export default function AdminDashboardPage() {
                   Latest seller requests
                 </Text>
               }
-              dataSource={ADMIN_PENDING_SELLERS}
+              dataSource={pendingSellers}
               style={{ padding: "0 20px 8px" }}
               renderItem={(seller) => (
                 <List.Item
@@ -775,7 +776,7 @@ export default function AdminDashboardPage() {
             style={{ height: "100%" }}
           >
             <List
-              dataSource={ADMIN_RECENT_DISPUTES}
+              dataSource={recentDisputes}
               renderItem={(dispute) => {
                 const priorityMeta: Record<string, { color: string; label: string }> = {
                   urgent: { color: "red", label: "Urgent" },

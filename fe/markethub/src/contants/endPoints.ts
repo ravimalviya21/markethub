@@ -12,7 +12,16 @@ export const AUTH_ENDPOINTS = {
     GOOGLE_CALLBACK: "/auth/google/callback",
 };
 
+export const CATEGORY_ENDPOINTS = {
+    LIST: "/category",
+    CREATE: "/category",
+    UPDATE: (id: number | string) => `/category/${id}`,
+    CHILDREN: (id: number | string) => `/category/${id}/children`,
+};
+
 // React Query keys
 export const QUERY_KEYS = {
     ME: ["auth", "me"],
+    CATEGORIES: ["categories"],
+    CATEGORY_CHILDREN: (id: number | string) => ["categories", "children", id],
 };

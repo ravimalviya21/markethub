@@ -31,7 +31,6 @@ import dayjs from "dayjs";
 
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui";
-import { ADMIN_USERS } from "@/utils/dummy";
 import { formatPrice } from "@/utils/customMethods";
 
 const { Title, Text } = Typography;
@@ -156,7 +155,7 @@ const ProfileDrawer = ({ open, user, onClose, onToggleStatus }: ProfileDrawerPro
 
 export default function AdminUsersPage() {
   const { modal, message } = App.useApp();
-  const [users, setUsers] = useState<any[]>(ADMIN_USERS);
+  const [users, setUsers] = useState<any[]>([]);
   const [role, setRole] = useState("all");
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");

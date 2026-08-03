@@ -42,7 +42,6 @@ import dayjs from "dayjs";
 
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui";
-import { ADMIN_SELLERS, ADMIN_PRODUCTS } from "@/utils/dummy";
 import { formatPrice } from "@/utils/customMethods";
 
 const { Title, Text } = Typography;
@@ -265,8 +264,8 @@ const ApprovalDrawer = ({ open, item, onClose, onApprove, onReject }: ApprovalDr
 
 export default function AdminApprovalsPage() {
   const { modal, message } = App.useApp();
-  const [sellers, setSellers] = useState<any[]>(ADMIN_SELLERS);
-  const [products, setProducts] = useState<any[]>(ADMIN_PRODUCTS);
+  const [sellers, setSellers] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [type, setType] = useState("all");
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");

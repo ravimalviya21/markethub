@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 import {
+  Alert,
   App,
   Avatar,
   Card,
   Col,
   Dropdown,
   Empty,
-  Form,
-  Input,
-  InputNumber,
+  Input as AntInput,
   Modal,
   Row,
   Segmented,
@@ -27,9 +28,6 @@ import {
   StopOutlined,
   CheckCircleOutlined,
   EditOutlined,
-  DeleteOutlined,
-  StarFilled,
-  StarOutlined,
   MoreOutlined,
   ReloadOutlined,
   ExportOutlined,
@@ -40,47 +38,47 @@ import {
 import dayjs from "dayjs";
 
 import AppLayout from "@/components/layout/AppLayout";
-import { Button } from "@/components/ui";
-import { ADMIN_CATEGORIES } from "@/utils/dummy";
+import { Button, Input } from "@/components/ui";
+import {
+  Category,
+  useCategories,
+  useCreateCategory,
+  useUpdateCategory,
+} from "@/services/category.service";
+import {
+  CATEGORY_IMAGE_URL_MAX,
+  CategoryFormOutput,
+  CategoryFormValues,
+  categoryFormSchema,
+} from "@/validations/category.validation";
+import { getApiErrorMessage } from "@/utils/customMethods";
 
 const { Title, Text } = Typography;
-const { TextArea } = Input;
-
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  active: { label: "Active", color: "green" },
-  inactive: { label: "Inactive", color: "default" },
-  draft: { label: "Draft", color: "gold" },
-};
 
 const formatNumber = (value: number | undefined) => Number(value || 0).toLocaleString("en-IN");
 
-const slugify = (value: string) =>
-  value
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-const StatusTag = ({ status }: { status: string }) => {
-  const meta = STATUS_META[status] || STATUS_META.active;
-  return (
-    <Tag color={meta.color} style={{ margin: 0 }}>
-      {meta.label}
-    </Tag>
-  );
+const EMPTY_FORM: CategoryFormValues = {
+  displayName: "",
+  parentId: null,
+  imageUrl: "",
+  isActive: false,
 };
+
+const StatusTag = ({ isActive }: { isActive: boolean }) => (
+  <Tag color={isActive ? "green" : "default"} style={{ margin: 0 }}>
+    {isActive ? "Active" : "Inactive"}
+  </Tag>
+);
 
 interface StatCardProps {
   icon: React.ReactNode;
   iconBg: string;
   title: string;
   value: React.ReactNode;
-  formatter?: (value: any) => React.ReactNode;
   suffix?: React.ReactNode;
 }
 
-const StatCard = ({ icon, iconBg, title, value, formatter, suffix }: StatCardProps) => (
+const StatCard = ({ icon, iconBg, title, value, suffix }: StatCardProps) => (
   <Card styles={{ body: { padding: 18 } }} style={{ height: "100%" }}>
     <Space align="start" size={14} style={{ width: "100%" }}>
       <div
@@ -104,8 +102,8 @@ const StatCard = ({ icon, iconBg, title, value, formatter, suffix }: StatCardPro
           {title}
         </Text>
         <Statistic
-          value={value as any}
-          formatter={formatter || ((v) => formatNumber(Number(v)))}
+          value={value as number}
+          formatter={(v) => formatNumber(Number(v))}
           suffix={suffix}
           valueStyle={{ fontSize: 22, fontWeight: 600, lineHeight: 1.2 }}
         />
@@ -117,153 +115,159 @@ const StatCard = ({ icon, iconBg, title, value, formatter, suffix }: StatCardPro
 interface CategoryFormModalProps {
   open: boolean;
   mode: "create" | "edit" | null;
-  initial: any;
-  parentOptions: { value: string; label: string }[];
-  onSubmit: (values: any) => void;
+  initial: Category | null;
+  parentOptions: { value: number; label: string }[];
+  submitting: boolean;
+  onSubmit: (values: CategoryFormOutput) => void;
   onClose: () => void;
 }
 
-const CategoryFormModal = ({ open, mode, initial, parentOptions, onSubmit, onClose }: CategoryFormModalProps) => {
-  const [form] = Form.useForm();
+const CategoryFormModal = ({
+  open,
+  mode,
+  initial,
+  parentOptions,
+  submitting,
+  onSubmit,
+  onClose,
+}: CategoryFormModalProps) => {
+  const isEdit = mode === "edit";
+  const { control, handleSubmit, reset } = useForm<CategoryFormValues, unknown, CategoryFormOutput>({
+    resolver: yupResolver(categoryFormSchema),
+    defaultValues: EMPTY_FORM,
+    mode: "onTouched",
+  });
 
   useEffect(() => {
     if (!open) return;
-    form.resetFields();
-    if (mode === "edit" && initial) {
-      form.setFieldsValue(initial);
-    } else {
-      form.setFieldsValue({
-        name: "",
-        slug: "",
-        description: "",
-        parent: null,
-        status: "active",
-        featured: false,
-        sortOrder: 1,
-        image: "",
-      });
-    }
-  }, [open, mode, initial, form]);
+    reset(
+      isEdit && initial
+        ? {
+            displayName: initial.displayName,
+            parentId: initial.parentId,
+            imageUrl: initial.imageUrl ?? "",
+            isActive: initial.isActive,
+          }
+        : EMPTY_FORM
+    );
+  }, [open, isEdit, initial, reset]);
 
   return (
     <Modal
       open={open}
-      title={mode === "edit" ? "Edit category" : "Add category"}
+      title={isEdit ? "Edit category" : "Add category"}
       onCancel={onClose}
-      okText={mode === "edit" ? "Save changes" : "Create category"}
-      onOk={() => {
-        form
-          .validateFields()
-          .then((values) => onSubmit({ ...values, slug: values.slug || slugify(values.name) }))
-          .catch(() => {});
-      }}
+      okText={isEdit ? "Save changes" : "Create category"}
+      onOk={handleSubmit(onSubmit)}
+      confirmLoading={submitting}
       destroyOnHidden
       width={520}
     >
-      <Form
-        form={form}
-        layout="vertical"
-        onValuesChange={(changed, all) => {
-          if (mode === "create" && changed.name && !all.slug) {
-            form.setFieldValue("slug", slugify(changed.name));
-          }
-        }}
-      >
-        <Form.Item
-          label="Name"
-          name="name"
-          rules={[{ required: true, message: "Please enter a name" }]}
-        >
-          <Input placeholder="e.g. Electronics" />
-        </Form.Item>
-        <Form.Item
-          label="Slug"
-          name="slug"
-          extra="Used in URLs. Lowercase, no spaces."
-        >
-          <Input placeholder="auto-generated from name" />
-        </Form.Item>
-        <Form.Item label="Description" name="description">
-          <TextArea rows={3} placeholder="Short description for buyers" />
-        </Form.Item>
-        <Row gutter={12}>
-          <Col span={12}>
-            <Form.Item label="Parent category" name="parent">
+      {isEdit && (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="Parent category and image can only be set when the category is created."
+        />
+      )}
+
+      <Input
+        name="displayName"
+        control={control}
+        label="Name"
+        placeholder="e.g. Electronics"
+        required
+      />
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ display: "block", marginBottom: 6, fontSize: 14 }}>
+          Parent category
+        </label>
+        <Controller
+          name="parentId"
+          control={control}
+          render={({ field, fieldState: { error } }) => (
+            <>
               <Select
+                {...field}
+                value={field.value ?? undefined}
+                onChange={(value) => field.onChange(value ?? null)}
                 allowClear
+                disabled={isEdit}
+                size="large"
+                style={{ width: "100%" }}
                 placeholder="None (top level)"
                 options={parentOptions}
                 showSearch
                 optionFilterProp="label"
+                status={error ? "error" : ""}
               />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="Status" name="status" initialValue="active">
-              <Select
-                options={[
-                  { value: "active", label: "Active" },
-                  { value: "inactive", label: "Inactive" },
-                  { value: "draft", label: "Draft" },
-                ]}
-              />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Row gutter={12}>
-          <Col span={12}>
-            <Form.Item label="Sort order" name="sortOrder" initialValue={1}>
-              <InputNumber min={0} style={{ width: "100%" }} />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              label="Featured"
-              name="featured"
-              valuePropName="checked"
-              initialValue={false}
-            >
-              <Switch />
-            </Form.Item>
-          </Col>
-        </Row>
-        <Form.Item label="Image URL" name="image">
-          <Input placeholder="https://..." />
-        </Form.Item>
-      </Form>
+              {error?.message && (
+                <div style={{ marginTop: 4, fontSize: 12, color: "#ff4d4f" }}>
+                  {error.message}
+                </div>
+              )}
+            </>
+          )}
+        />
+      </div>
+
+      <Input
+        name="imageUrl"
+        control={control}
+        label="Image URL"
+        placeholder="https://..."
+        disabled={isEdit}
+        maxLength={CATEGORY_IMAGE_URL_MAX}
+      />
+
+      <Controller
+        name="isActive"
+        control={control}
+        render={({ field }) => (
+          <Space size={10}>
+            <Switch checked={field.value} onChange={field.onChange} />
+            <Text>Visible to buyers</Text>
+          </Space>
+        )}
+      />
     </Modal>
   );
 };
 
 export default function AdminCategoryManagementPage() {
   const { modal, message } = App.useApp();
-  const [categories, setCategories] = useState<any[]>(ADMIN_CATEGORIES);
   const [status, setStatus] = useState("all");
   const [level, setLevel] = useState("all");
-  const [featured, setFeatured] = useState("all");
   const [search, setSearch] = useState("");
   const [editorMode, setEditorMode] = useState<"create" | "edit" | null>(null);
-  const [editing, setEditing] = useState<any>(null);
+  const [editing, setEditing] = useState<Category | null>(null);
+
+  const {
+    data: categories = [],
+    isLoading,
+    isFetching,
+    isError,
+    error,
+    refetch,
+  } = useCategories();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
 
   const stats = useMemo(() => {
-    const acc: Record<string, number> = {
-      total: categories.length,
-      active: 0,
-      inactive: 0,
-      draft: 0,
-      featured: 0,
-      products: 0,
-    };
+    const acc = { total: categories.length, active: 0, inactive: 0, topLevel: 0, sub: 0 };
     for (const c of categories) {
-      acc[c.status] = (acc[c.status] || 0) + 1;
-      if (c.featured) acc.featured += 1;
-      acc.products += Number(c.productsCount || 0);
+      if (c.isActive) acc.active += 1;
+      else acc.inactive += 1;
+      if (c.parentId) acc.sub += 1;
+      else acc.topLevel += 1;
     }
     return acc;
   }, [categories]);
 
   const parentMap = useMemo(() => {
-    const map = new Map<string, any>();
+    const map = new Map<number, Category>();
     for (const c of categories) map.set(c.id, c);
     return map;
   }, [categories]);
@@ -271,88 +275,54 @@ export default function AdminCategoryManagementPage() {
   const parentOptions = useMemo(
     () =>
       categories
-        .filter((c) => !c.parent)
-        .map((c) => ({ value: c.id, label: c.name })),
+        .filter((c) => !c.parentId)
+        .map((c) => ({ value: c.id, label: c.displayName })),
     [categories]
   );
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return categories.filter((c) => {
-      if (status !== "all" && c.status !== status) return false;
-      if (level === "top" && c.parent) return false;
-      if (level === "sub" && !c.parent) return false;
-      if (featured === "featured" && !c.featured) return false;
-      if (featured === "not_featured" && c.featured) return false;
+      if (status === "active" && !c.isActive) return false;
+      if (status === "inactive" && c.isActive) return false;
+      if (level === "top" && c.parentId) return false;
+      if (level === "sub" && !c.parentId) return false;
       if (
         term &&
-        !c.name.toLowerCase().includes(term) &&
-        !c.slug.toLowerCase().includes(term) &&
-        !c.id.toLowerCase().includes(term)
+        !c.displayName.toLowerCase().includes(term) &&
+        !String(c.id).includes(term)
       )
         return false;
       return true;
     });
-  }, [categories, status, level, featured, search]);
+  }, [categories, status, level, search]);
 
-  const updateCategory = (id: string, patch: any) => {
-    setCategories((prev) =>
-      prev.map((c) =>
-        c.id === id
-          ? { ...c, ...patch, updatedAt: new Date().toISOString() }
-          : c
-      )
-    );
+  const applyStatus = async (category: Category, isActive: boolean) => {
+    try {
+      await updateCategory.mutateAsync({ id: category.id, isActive });
+      message.success(`${category.displayName} ${isActive ? "activated" : "deactivated"}`);
+    } catch (err) {
+      message.error(getApiErrorMessage(err, "Could not update the category"));
+    }
   };
 
-  const handleToggleStatus = (category: any) => {
-    if (category.status === "active") {
+  const handleToggleStatus = (category: Category) => {
+    if (category.isActive) {
       modal.confirm({
-        title: `Deactivate ${category.name}?`,
+        title: `Deactivate ${category.displayName}?`,
         content:
           "Buyers will no longer see this category. Existing products remain in place.",
         okText: "Deactivate",
         okButtonProps: { danger: true },
         cancelText: "Cancel",
-        onOk: () => {
-          updateCategory(category.id, { status: "inactive" });
-          message.success(`${category.name} deactivated`);
-        },
+        onOk: () => applyStatus(category, false),
       });
     } else {
-      updateCategory(category.id, { status: "active" });
-      message.success(`${category.name} activated`);
+      applyStatus(category, true);
     }
   };
 
-  const handleToggleFeatured = (category: any) => {
-    updateCategory(category.id, { featured: !category.featured });
-    message.success(
-      `${category.name} ${category.featured ? "removed from" : "marked as"} featured`
-    );
-  };
-
-  const handleDelete = (category: any) => {
-    if (category.productsCount > 0) {
-      message.warning(
-        `${category.name} has ${formatNumber(category.productsCount)} products and cannot be deleted.`
-      );
-      return;
-    }
-    modal.confirm({
-      title: `Delete ${category.name}?`,
-      content: "This action cannot be undone.",
-      okText: "Delete",
-      okButtonProps: { danger: true },
-      cancelText: "Cancel",
-      onOk: () => {
-        setCategories((prev) => prev.filter((c) => c.id !== category.id));
-        message.success(`${category.name} deleted`);
-      },
-    });
-  };
-
-  const handleEdit = (category: any) => {
+  const handleEdit = (category: Category) => {
     setEditing(category);
     setEditorMode("edit");
   };
@@ -362,70 +332,68 @@ export default function AdminCategoryManagementPage() {
     setEditorMode("create");
   };
 
-  const handleSubmit = (values: any) => {
-    if (editorMode === "edit" && editing) {
-      updateCategory(editing.id, values);
-      message.success(`${values.name} updated`);
-    } else {
-      const nextId = `CAT-${String(
-        Math.max(...categories.map((c) => Number(c.id.split("-")[1] || 0))) + 1
-      ).padStart(2, "0")}`;
-      const newCategory = {
-        id: nextId,
-        productsCount: 0,
-        sellersCount: 0,
-        updatedAt: new Date().toISOString(),
-        ...values,
-      };
-      setCategories((prev) => [newCategory, ...prev]);
-      message.success(`${values.name} created`);
-    }
+  const closeEditor = () => {
     setEditorMode(null);
     setEditing(null);
+  };
+
+  const handleSubmit = async (values: CategoryFormOutput) => {
+    try {
+      if (editorMode === "edit" && editing) {
+        await updateCategory.mutateAsync({
+          id: editing.id,
+          displayName: values.displayName,
+          isActive: values.isActive,
+        });
+        message.success(`${values.displayName} updated`);
+      } else {
+        await createCategory.mutateAsync({
+          displayName: values.displayName,
+          parentId: values.parentId ?? null,
+          imageUrl: values.imageUrl,
+          isActive: values.isActive,
+        });
+        message.success(`${values.displayName} created`);
+      }
+      closeEditor();
+    } catch (err) {
+      message.error(getApiErrorMessage(err, "Could not save the category"));
+    }
   };
 
   const handleResetFilters = () => {
     setStatus("all");
     setLevel("all");
-    setFeatured("all");
     setSearch("");
   };
 
   const statusOptions = [
     { value: "all", label: `All (${stats.total})` },
-    { value: "active", label: `Active (${stats.active || 0})` },
-    { value: "inactive", label: `Inactive (${stats.inactive || 0})` },
-    { value: "draft", label: `Draft (${stats.draft || 0})` },
+    { value: "active", label: `Active (${stats.active})` },
+    { value: "inactive", label: `Inactive (${stats.inactive})` },
   ];
 
   const columns = [
     {
       title: "Category",
-      dataIndex: "name",
-      key: "name",
-      sorter: (a: any, b: any) => a.name.localeCompare(b.name),
-      render: (_: any, category: any) => (
+      dataIndex: "displayName",
+      key: "displayName",
+      sorter: (a: Category, b: Category) => a.displayName.localeCompare(b.displayName),
+      render: (_: unknown, category: Category) => (
         <Space size={12}>
           <Avatar
             shape="square"
             size={48}
-            src={category.image}
+            src={category.imageUrl}
             icon={<TagsOutlined />}
           />
           <div style={{ minWidth: 0 }}>
-            <Space size={6} align="center">
-              <a onClick={() => handleEdit(category)} style={{ fontWeight: 500 }}>
-                {category.name}
-              </a>
-              {category.featured && (
-                <Tooltip title="Featured">
-                  <StarFilled style={{ color: "#faad14", fontSize: 13 }} />
-                </Tooltip>
-              )}
-            </Space>
+            <a onClick={() => handleEdit(category)} style={{ fontWeight: 500 }}>
+              {category.displayName}
+            </a>
             <div>
               <Text type="secondary" style={{ fontSize: 12 }}>
-                /{category.slug} · {category.id}
+                #{category.id}
               </Text>
             </div>
           </div>
@@ -434,14 +402,14 @@ export default function AdminCategoryManagementPage() {
     },
     {
       title: "Parent",
-      dataIndex: "parent",
-      key: "parent",
-      width: 160,
-      render: (parentId: string | null) =>
+      dataIndex: "parentId",
+      key: "parentId",
+      width: 180,
+      render: (parentId: number | null) =>
         parentId ? (
           <Space size={6}>
             <FolderOutlined style={{ color: "#1677ff" }} />
-            <Text>{parentMap.get(parentId)?.name || "—"}</Text>
+            <Text>{parentMap.get(parentId)?.displayName || `#${parentId}`}</Text>
           </Space>
         ) : (
           <Tag style={{ margin: 0 }}>Top level</Tag>
@@ -449,49 +417,38 @@ export default function AdminCategoryManagementPage() {
     },
     {
       title: "Status",
-      dataIndex: "status",
-      key: "status",
+      dataIndex: "isActive",
+      key: "isActive",
       width: 110,
-      render: (s: string) => <StatusTag status={s} />,
+      render: (isActive: boolean) => <StatusTag isActive={isActive} />,
     },
     {
-      title: "Products",
-      dataIndex: "productsCount",
-      key: "productsCount",
-      width: 110,
-      sorter: (a: any, b: any) => a.productsCount - b.productsCount,
-      render: (v: number) => formatNumber(v),
-    },
-    {
-      title: "Sellers",
-      dataIndex: "sellersCount",
-      key: "sellersCount",
-      width: 100,
-      sorter: (a: any, b: any) => a.sellersCount - b.sellersCount,
-      render: (v: number) => formatNumber(v),
-    },
-    {
-      title: "Order",
-      dataIndex: "sortOrder",
-      key: "sortOrder",
-      width: 90,
-      sorter: (a: any, b: any) => a.sortOrder - b.sortOrder,
+      title: "Created",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      width: 140,
+      sorter: (a: Category, b: Category) =>
+        dayjs(a.createdAt).valueOf() - dayjs(b.createdAt).valueOf(),
+      render: (createdAt?: string) =>
+        createdAt ? dayjs(createdAt).format("DD MMM YYYY") : "—",
     },
     {
       title: "Updated",
       dataIndex: "updatedAt",
       key: "updatedAt",
-      width: 130,
-      sorter: (a: any, b: any) => dayjs(a.updatedAt).valueOf() - dayjs(b.updatedAt).valueOf(),
+      width: 140,
+      sorter: (a: Category, b: Category) =>
+        dayjs(a.updatedAt).valueOf() - dayjs(b.updatedAt).valueOf(),
       defaultSortOrder: "descend" as const,
-      render: (updatedAt: string) => dayjs(updatedAt).format("DD MMM YYYY"),
+      render: (updatedAt?: string) =>
+        updatedAt ? dayjs(updatedAt).format("DD MMM YYYY") : "—",
     },
     {
       title: "Actions",
       key: "actions",
       width: 180,
       fixed: "right" as const,
-      render: (_: any, category: any) => {
+      render: (_: unknown, category: Category) => {
         const menuItems = [
           {
             key: "edit",
@@ -499,14 +456,8 @@ export default function AdminCategoryManagementPage() {
             label: "Edit",
             onClick: () => handleEdit(category),
           },
-          {
-            key: "feature",
-            icon: category.featured ? <StarOutlined /> : <StarFilled />,
-            label: category.featured ? "Unfeature" : "Mark featured",
-            onClick: () => handleToggleFeatured(category),
-          },
           { type: "divider" as const },
-          category.status === "active"
+          category.isActive
             ? {
                 key: "deactivate",
                 icon: <StopOutlined />,
@@ -519,15 +470,6 @@ export default function AdminCategoryManagementPage() {
                 label: "Activate",
                 onClick: () => handleToggleStatus(category),
               },
-          { type: "divider" as const },
-          {
-            key: "delete",
-            icon: <DeleteOutlined />,
-            label: "Delete",
-            danger: true,
-            disabled: category.productsCount > 0,
-            onClick: () => handleDelete(category),
-          },
         ];
         return (
           <Space>
@@ -561,6 +503,16 @@ export default function AdminCategoryManagementPage() {
         </Col>
         <Col>
           <Space>
+            <Tooltip title="Refresh">
+              <Button
+                type="default"
+                icon={<ReloadOutlined />}
+                loading={isFetching}
+                onClick={() => refetch()}
+              >
+                Refresh
+              </Button>
+            </Tooltip>
             <Tooltip title="Export to CSV">
               <Button
                 type="default"
@@ -577,6 +529,20 @@ export default function AdminCategoryManagementPage() {
         </Col>
       </Row>
 
+      {isError && (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginTop: 16 }}
+          message={getApiErrorMessage(error, "Could not load categories")}
+          action={
+            <Button type="default" size="small" onClick={() => refetch()}>
+              Retry
+            </Button>
+          }
+        />
+      )}
+
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} sm={12} xl={6}>
           <StatCard
@@ -591,23 +557,10 @@ export default function AdminCategoryManagementPage() {
             icon={<CheckCircleOutlined />}
             iconBg="#52c41a"
             title="Active"
-            value={stats.active || 0}
+            value={stats.active}
             suffix={
               <Text type="secondary" style={{ fontSize: 12, marginLeft: 6 }}>
-                / {stats.inactive || 0} inactive
-              </Text>
-            }
-          />
-        </Col>
-        <Col xs={24} sm={12} xl={6}>
-          <StatCard
-            icon={<StarFilled />}
-            iconBg="#faad14"
-            title="Featured"
-            value={stats.featured}
-            suffix={
-              <Text type="secondary" style={{ fontSize: 12, marginLeft: 6 }}>
-                · {stats.draft || 0} drafts
+                / {stats.inactive} inactive
               </Text>
             }
           />
@@ -615,9 +568,17 @@ export default function AdminCategoryManagementPage() {
         <Col xs={24} sm={12} xl={6}>
           <StatCard
             icon={<AppstoreOutlined />}
+            iconBg="#faad14"
+            title="Top level"
+            value={stats.topLevel}
+          />
+        </Col>
+        <Col xs={24} sm={12} xl={6}>
+          <StatCard
+            icon={<FolderOutlined />}
             iconBg="#13c2c2"
-            title="Products mapped"
-            value={stats.products}
+            title="Sub-categories"
+            value={stats.sub}
           />
         </Col>
       </Row>
@@ -648,30 +609,6 @@ export default function AdminCategoryManagementPage() {
             />
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Select
-              size="large"
-              value={featured}
-              onChange={setFeatured}
-              style={{ width: "100%" }}
-              options={[
-                { value: "all", label: "All categories" },
-                { value: "featured", label: "Featured only" },
-                { value: "not_featured", label: "Not featured" },
-              ]}
-              suffixIcon={<StarFilled />}
-            />
-          </Col>
-          <Col xs={24} md={18}>
-            <Input
-              size="large"
-              allowClear
-              prefix={<SearchOutlined style={{ color: "#8c8c8c" }} />}
-              placeholder="Search by name, slug or ID"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </Col>
-          <Col xs={24} md={6}>
             <Button
               size="large"
               block
@@ -680,6 +617,16 @@ export default function AdminCategoryManagementPage() {
             >
               Reset filters
             </Button>
+          </Col>
+          <Col xs={24}>
+            <AntInput
+              size="large"
+              allowClear
+              prefix={<SearchOutlined style={{ color: "#8c8c8c" }} />}
+              placeholder="Search by name or ID"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </Col>
         </Row>
       </Card>
@@ -700,17 +647,22 @@ export default function AdminCategoryManagementPage() {
           rowKey="id"
           columns={columns}
           dataSource={filtered}
+          loading={isLoading}
           pagination={{
             pageSize: 8,
             showSizeChanger: false,
             showTotal: (total) => `${formatNumber(total)} categories`,
           }}
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1100 }}
           locale={{
             emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No categories match these filters"
+                description={
+                  categories.length
+                    ? "No categories match these filters"
+                    : "No categories yet"
+                }
               />
             ),
           }}
@@ -722,11 +674,9 @@ export default function AdminCategoryManagementPage() {
         mode={editorMode}
         initial={editing}
         parentOptions={parentOptions}
+        submitting={createCategory.isPending || updateCategory.isPending}
         onSubmit={handleSubmit}
-        onClose={() => {
-          setEditorMode(null);
-          setEditing(null);
-        }}
+        onClose={closeEditor}
       />
     </AppLayout>
   );

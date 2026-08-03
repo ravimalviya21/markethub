@@ -44,7 +44,6 @@ import dayjs from "dayjs";
 
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui";
-import { ADMIN_BANNERS } from "@/utils/dummy";
 
 const { Title, Text, Paragraph } = Typography;
 const { RangePicker } = DatePicker;
@@ -404,7 +403,7 @@ const BannerPreviewDrawer = ({ open, banner, onClose, onEdit, onToggleStatus }: 
 
 export default function AdminBannerManagementPage() {
   const { modal, message } = App.useApp();
-  const [banners, setBanners] = useState<any[]>(ADMIN_BANNERS);
+  const [banners, setBanners] = useState<any[]>([]);
   const [status, setStatus] = useState("all");
   const [placement, setPlacement] = useState("all");
   const [search, setSearch] = useState("");

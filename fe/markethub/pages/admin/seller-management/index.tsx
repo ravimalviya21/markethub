@@ -46,7 +46,6 @@ import dayjs from "dayjs";
 
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui";
-import { ADMIN_SELLERS } from "@/utils/dummy";
 import { formatPrice } from "@/utils/customMethods";
 
 const { Title, Text } = Typography;
@@ -238,7 +237,7 @@ const SellerDrawer = ({ open, seller, onClose, onApprove, onReject, onToggleStat
 
 export default function AdminSellerManagementPage() {
   const { modal, message } = App.useApp();
-  const [sellers, setSellers] = useState<any[]>(ADMIN_SELLERS);
+  const [sellers, setSellers] = useState<any[]>([]);
   const [status, setStatus] = useState("all");
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");

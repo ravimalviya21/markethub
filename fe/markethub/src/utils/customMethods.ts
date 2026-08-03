@@ -1,3 +1,21 @@
+import { AxiosError } from "axios";
+
+interface ApiErrorBody {
+  message?: string;
+  error?: string;
+  issues?: { path: string; message: string }[];
+}
+
+export const getApiErrorMessage = (error: unknown, fallback = "Something went wrong") => {
+  const err = error as AxiosError<ApiErrorBody>;
+  const data = err?.response?.data;
+  if (data?.issues?.length) {
+    return data.issues.map((issue) => issue.message).join(", ");
+  }
+  if (typeof data === "string") return fallback;
+  return data?.message || err?.message || fallback;
+};
+
 export const formatPrice = (value: number | null | undefined, currency: string) => {
   if (value == null) return "";
   try {

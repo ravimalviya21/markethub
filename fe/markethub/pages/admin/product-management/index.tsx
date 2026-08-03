@@ -44,7 +44,6 @@ import dayjs from "dayjs";
 
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui";
-import { ADMIN_PRODUCTS } from "@/utils/dummy";
 import { formatPrice } from "@/utils/customMethods";
 
 const { Title, Text } = Typography;
@@ -270,7 +269,7 @@ const ProductDrawer = ({ open, product, onClose, onApprove, onReject, onToggleSt
 
 export default function AdminProductManagementPage() {
   const { modal, message } = App.useApp();
-  const [products, setProducts] = useState<any[]>(ADMIN_PRODUCTS);
+  const [products, setProducts] = useState<any[]>([]);
   const [status, setStatus] = useState("all");
   const [category, setCategory] = useState("all");
   const [seller, setSeller] = useState("all");

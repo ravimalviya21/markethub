@@ -6,16 +6,11 @@ import { HeaderRole } from "@/components/layout/Header/config";
 import { HeaderUser } from "@/components/layout/Header/ProfileMenu";
 import { useProfileMenuItems } from "@/components/layout/Header/useProfileMenuItems";
 import { getDashboardForRole } from "@/utils/auth";
-import { ADMIN_PROFILE, USER_PROFILE } from "@/utils/dummy";
+import { USER_PROFILE } from "@/utils/dummy";
 
 type HeaderPassthrough = Omit<ComponentProps<typeof Header>, "role" | "profileMenuItems">;
 
 const FALLBACK_USERS: Partial<Record<HeaderRole, HeaderUser>> = {
-  admin: {
-    name: ADMIN_PROFILE.name,
-    email: ADMIN_PROFILE.email,
-    avatarUrl: ADMIN_PROFILE.avatar,
-  },
   buyer: {
     name: `${USER_PROFILE.firstName} ${USER_PROFILE.lastName}`,
     email: USER_PROFILE.email,

@@ -47,7 +47,6 @@ import dayjs from "dayjs";
 
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui";
-import { ADMIN_ORDERS } from "@/utils/dummy";
 import { formatPrice } from "@/utils/customMethods";
 
 const { Title, Text } = Typography;
@@ -303,7 +302,7 @@ const OrderDrawer = ({ open, order, onClose, onAdvance, onCancel }: OrderDrawerP
 
 export default function AdminOrderManagementPage() {
   const { modal, message } = App.useApp();
-  const [orders, setOrders] = useState<any[]>(ADMIN_ORDERS);
+  const [orders, setOrders] = useState<any[]>([]);
   const [status, setStatus] = useState("all");
   const [paymentStatus, setPaymentStatus] = useState("all");
   const [paymentMethod, setPaymentMethod] = useState("all");

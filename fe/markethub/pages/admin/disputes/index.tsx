@@ -47,7 +47,6 @@ import dayjs from "dayjs";
 
 import AppLayout from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui";
-import { ADMIN_DISPUTES } from "@/utils/dummy";
 import { formatPrice } from "@/utils/customMethods";
 
 const { Title, Text, Paragraph } = Typography;
@@ -376,7 +375,7 @@ const ResolutionModal = ({ open, dispute, resolutionType, onCancel, onConfirm }:
 
 export default function AdminDisputesPage() {
   const { modal, message } = App.useApp();
-  const [disputes, setDisputes] = useState<any[]>(ADMIN_DISPUTES);
+  const [disputes, setDisputes] = useState<any[]>([]);
   const [status, setStatus] = useState("active");
   const [priority, setPriority] = useState("all");
   const [type, setType] = useState("all");
