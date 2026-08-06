@@ -265,6 +265,16 @@ const ProductModel = {
         return rows[0] ? normalizeProduct(rows[0]) : null;
     },
 
+    async findByIds(ids: number[]): Promise<ProductRow[]> {
+        if (!ids.length) return [];
+        const placeholders = ids.map(() => "?").join(", ");
+        const [rows] = await pool.query<(ProductRow & RowDataPacket)[]>(
+            `SELECT * FROM products WHERE id IN (${placeholders})`,
+            ids
+        );
+        return rows.map(normalizeProduct);
+    },
+
     async findDetailById(id: number): Promise<(ProductListItem & { images: ProductImageRow[] }) | null> {
         const [rows] = await pool.execute<(ProductListItem & RowDataPacket)[]>(
             `SELECT p.*,

@@ -80,6 +80,53 @@ export interface ProductImageRow {
     updatedAt?: Date;
 }
 
+export type OrderStatus = "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
+
+export interface ShippingAddress {
+    fullName: string;
+    phone: string;
+    line1: string;
+    line2?: string | null;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+}
+
+export interface OrderRow {
+    id: number;
+    orderNumber: string;
+    buyerId: number;
+    sellerId: number;
+    status: OrderStatus;
+    subtotal: number;
+    shippingCost: number;
+    tax: number;
+    total: number;
+    shippingAddress: ShippingAddress;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+export interface OrderItemRow {
+    id: number;
+    orderId: number;
+    productId: number;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
+export interface OrderStatusHistoryRow {
+    id: number;
+    orderId: number;
+    status: OrderStatus;
+    updatedBy: number | null;
+    createdAt?: Date;
+}
+
 export interface AuthUser {
     id: number;
     name?: string;
