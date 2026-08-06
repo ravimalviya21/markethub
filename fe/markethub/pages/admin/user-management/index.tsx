@@ -1,15 +1,17 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 import {
+  Alert,
   App,
   Avatar,
   Card,
   Col,
-  DatePicker,
   Descriptions,
   Drawer,
-  Dropdown,
   Empty,
-  Input,
+  Input as AntInput,
+  Modal,
   Row,
   Segmented,
   Select,
@@ -25,40 +27,54 @@ import {
   UserOutlined,
   ShopOutlined,
   EyeOutlined,
-  StopOutlined,
-  CheckCircleOutlined,
   MailOutlined,
-  PhoneOutlined,
-  EnvironmentOutlined,
   TeamOutlined,
   UserAddOutlined,
-  MoreOutlined,
   ReloadOutlined,
   ExportOutlined,
   ClockCircleOutlined,
+  SafetyCertificateOutlined,
+  CrownOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import AppLayout from "@/components/layout/AppLayout";
-import { Button } from "@/components/ui";
-import { formatPrice } from "@/utils/customMethods";
+import { Button, Input } from "@/components/ui";
+import {
+  CreateUserPayload,
+  PlatformUser,
+  UserRole,
+  useCreateUser,
+  useUsers,
+} from "@/services/user.service";
+import {
+  USER_ROLES,
+  CreateUserFormOutput,
+  CreateUserFormValues,
+  createUserSchema,
+} from "@/validations/user.validation";
+import { getApiErrorMessage } from "@/utils/customMethods";
 
 const { Title, Text } = Typography;
-const { RangePicker } = DatePicker;
 
-const ROLE_META: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+const PAGE_SIZE = 10;
+
+const ROLE_META: Record<UserRole, { label: string; color: string; icon: React.ReactNode }> = {
   buyer: { label: "Buyer", color: "blue", icon: <UserOutlined /> },
   seller: { label: "Seller", color: "purple", icon: <ShopOutlined /> },
+  admin: { label: "Admin", color: "gold", icon: <CrownOutlined /> },
 };
 
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  active: { label: "Active", color: "green" },
-  inactive: { label: "Inactive", color: "red" },
+const EMPTY_FORM: CreateUserFormValues = {
+  name: "",
+  email: "",
+  password: "",
+  role: "buyer",
 };
 
 const formatNumber = (value: number | undefined) => Number(value || 0).toLocaleString("en-IN");
 
-const RoleTag = ({ role }: { role: string }) => {
+const RoleTag = ({ role }: { role: UserRole }) => {
   const meta = ROLE_META[role] || ROLE_META.buyer;
   return (
     <Tag color={meta.color} icon={meta.icon} style={{ margin: 0 }}>
@@ -67,24 +83,20 @@ const RoleTag = ({ role }: { role: string }) => {
   );
 };
 
-const StatusTag = ({ status }: { status: string }) => {
-  const meta = STATUS_META[status] || STATUS_META.active;
-  return (
-    <Tag color={meta.color} style={{ margin: 0 }}>
-      {meta.label}
-    </Tag>
-  );
-};
+const VerifiedTag = ({ verified }: { verified: boolean }) => (
+  <Tag color={verified ? "green" : "default"} style={{ margin: 0 }}>
+    {verified ? "Verified" : "Unverified"}
+  </Tag>
+);
 
 interface StatCardProps {
   icon: React.ReactNode;
   iconBg: string;
   title: string;
-  value: React.ReactNode;
-  suffix?: React.ReactNode;
+  value: number;
 }
 
-const StatCard = ({ icon, iconBg, title, value, suffix }: StatCardProps) => (
+const StatCard = ({ icon, iconBg, title, value }: StatCardProps) => (
   <Card styles={{ body: { padding: 18 } }} style={{ height: "100%" }}>
     <Space align="start" size={14} style={{ width: "100%" }}>
       <div
@@ -108,186 +120,221 @@ const StatCard = ({ icon, iconBg, title, value, suffix }: StatCardProps) => (
           {title}
         </Text>
         <Statistic
-          value={value as any}
+          value={value}
           formatter={(v) => formatNumber(Number(v))}
-          suffix={suffix}
-          valueStyle={{ fontSize: 22, fontWeight: 600, lineHeight: 1.2 }}
+          styles={{ content: { fontSize: 22, fontWeight: 600, lineHeight: 1.2 } }}
         />
       </div>
     </Space>
   </Card>
 );
 
-interface ProfileDrawerProps {
-  open: boolean;
-  user: any;
+interface UserDrawerProps {
+  user: PlatformUser | null;
   onClose: () => void;
-  onToggleStatus: (user: any) => void;
 }
 
-const ProfileDrawer = ({ open, user, onClose, onToggleStatus }: ProfileDrawerProps) => {
-  if (!user) return null;
-  const isSeller = user.role === "seller";
+const UserDrawer = ({ user, onClose }: UserDrawerProps) => (
+  <Drawer
+    open={Boolean(user)}
+    onClose={onClose}
+    size={Math.min(480, typeof window !== "undefined" ? window.innerWidth : 480)}
+    title="User profile"
+    destroyOnHidden
+  >
+    {user && (
+      <>
+        <Space align="center" size={16} style={{ marginBottom: 20 }}>
+          <Avatar size={64} icon={<UserOutlined />} />
+          <div>
+            <Title level={4} style={{ margin: 0 }}>
+              {user.name}
+            </Title>
+            <Space size={8} wrap style={{ marginTop: 4 }}>
+              <RoleTag role={user.role} />
+              <VerifiedTag verified={user.isEmailVerified} />
+            </Space>
+          </div>
+        </Space>
+
+        <Descriptions column={1} size="small" colon={false} bordered>
+          <Descriptions.Item label="User ID">#{user.id}</Descriptions.Item>
+          <Descriptions.Item
+            label={
+              <Space size={6}>
+                <MailOutlined />
+                Email
+              </Space>
+            }
+          >
+            {user.email}
+          </Descriptions.Item>
+          <Descriptions.Item
+            label={
+              <Space size={6}>
+                <ClockCircleOutlined />
+                Joined
+              </Space>
+            }
+          >
+            {user.created_at ? dayjs(user.created_at).format("DD MMM YYYY") : "—"}
+          </Descriptions.Item>
+        </Descriptions>
+      </>
+    )}
+  </Drawer>
+);
+
+interface CreateUserModalProps {
+  open: boolean;
+  submitting: boolean;
+  onSubmit: (values: CreateUserFormOutput) => void;
+  onClose: () => void;
+}
+
+const CreateUserModal = ({ open, submitting, onSubmit, onClose }: CreateUserModalProps) => {
+  const { control, handleSubmit, reset } = useForm<
+    CreateUserFormValues,
+    unknown,
+    CreateUserFormOutput
+  >({
+    resolver: yupResolver(createUserSchema),
+    defaultValues: EMPTY_FORM,
+    mode: "onTouched",
+  });
+
+  useEffect(() => {
+    if (open) reset(EMPTY_FORM);
+  }, [open, reset]);
+
   return (
-    <Drawer
+    <Modal
       open={open}
-      onClose={onClose}
-      width={Math.min(480, typeof window !== "undefined" ? window.innerWidth : 480)}
-      title="User profile"
+      title="Add user"
+      onCancel={onClose}
+      okText="Create user"
+      onOk={handleSubmit(onSubmit)}
+      confirmLoading={submitting}
       destroyOnHidden
+      width={520}
     >
-      <Space align="center" size={16} style={{ marginBottom: 20 }}>
-        <Avatar size={64} src={user.avatar} icon={<UserOutlined />} />
-        <div>
-          <Title level={4} style={{ margin: 0 }}>
-            {user.name}
-          </Title>
-          <Space size={8} wrap style={{ marginTop: 4 }}>
-            <RoleTag role={user.role} />
-            <StatusTag status={user.status} />
-          </Space>
-        </div>
-      </Space>
+      <Input name="name" control={control} label="Name" placeholder="Full name" required />
+      <Input
+        name="email"
+        control={control}
+        label="Email"
+        type="email"
+        placeholder="user@example.com"
+        required
+      />
+      <Input
+        name="password"
+        control={control}
+        label="Temporary password"
+        type="password"
+        placeholder="At least 8 characters"
+        required
+      />
 
-      <Descriptions column={1} size="small" colon={false} bordered>
-        <Descriptions.Item label="User ID">{user.id}</Descriptions.Item>
-        <Descriptions.Item label={<Space size={6}><MailOutlined />Email</Space>}>
-          {user.email}
-        </Descriptions.Item>
-        <Descriptions.Item label={<Space size={6}><PhoneOutlined />Phone</Space>}>
-          {user.phone}
-        </Descriptions.Item>
-        <Descriptions.Item label={<Space size={6}><EnvironmentOutlined />Location</Space>}>
-          {user.location}
-        </Descriptions.Item>
-        <Descriptions.Item label={<Space size={6}><ClockCircleOutlined />Joined</Space>}>
-          {dayjs(user.joinedAt).format("DD MMM YYYY")}
-        </Descriptions.Item>
-
-        {isSeller ? (
-          <>
-            <Descriptions.Item label="Business">{user.businessName}</Descriptions.Item>
-            <Descriptions.Item label="Category">{user.category}</Descriptions.Item>
-            <Descriptions.Item label="Products listed">
-              {formatNumber(user.productsCount)}
-            </Descriptions.Item>
-            <Descriptions.Item label="Total sales">
-              {formatPrice(user.totalSales, "INR")}
-            </Descriptions.Item>
-          </>
-        ) : (
-          <>
-            <Descriptions.Item label="Orders placed">
-              {formatNumber(user.ordersCount)}
-            </Descriptions.Item>
-            <Descriptions.Item label="Total spend">
-              {formatPrice(user.totalSpend, "INR")}
-            </Descriptions.Item>
-          </>
-        )}
-      </Descriptions>
-
-      <div style={{ marginTop: 24 }}>
-        {user.status === "active" ? (
-          <Button
-            danger
-            block
-            icon={<StopOutlined />}
-            onClick={() => onToggleStatus(user)}
-          >
-            Deactivate account
-          </Button>
-        ) : (
-          <Button
-            block
-            icon={<CheckCircleOutlined />}
-            onClick={() => onToggleStatus(user)}
-          >
-            Activate account
-          </Button>
-        )}
+      <div style={{ marginBottom: 8 }}>
+        <label style={{ display: "block", marginBottom: 6, fontSize: 14 }}>
+          <span style={{ color: "#ff4d4f", marginRight: 4 }}>*</span>Role
+        </label>
+        <Controller
+          name="role"
+          control={control}
+          render={({ field, fieldState: { error } }) => (
+            <>
+              <Select
+                {...field}
+                size="large"
+                style={{ width: "100%" }}
+                options={USER_ROLES.map((role) => ({
+                  value: role,
+                  label: ROLE_META[role].label,
+                }))}
+                status={error ? "error" : ""}
+              />
+              {error?.message && (
+                <div style={{ marginTop: 4, fontSize: 12, color: "#ff4d4f" }}>{error.message}</div>
+              )}
+            </>
+          )}
+        />
       </div>
-    </Drawer>
+
+      <Alert
+        type="info"
+        showIcon
+        message="The account is created already verified. Share the password with the user and ask them to change it after signing in."
+      />
+    </Modal>
   );
 };
 
 export default function AdminUserManagementPage() {
-  const { modal, message } = App.useApp();
-  const [users, setUsers] = useState<any[]>([]);
-  const [role, setRole] = useState("all");
-  const [status, setStatus] = useState("all");
+  const { message } = App.useApp();
+  const [role, setRole] = useState<UserRole | "all">("all");
   const [search, setSearch] = useState("");
-  const [dateRange, setDateRange] = useState<any>(null);
-  const [selected, setSelected] = useState<any>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<PlatformUser | null>(null);
+  const [creating, setCreating] = useState(false);
 
-  const stats = useMemo(() => {
-    const acc: Record<string, number> = { total: users.length, buyer: 0, seller: 0, active: 0, inactive: 0 };
-    for (const u of users) {
-      acc[u.role] = (acc[u.role] || 0) + 1;
-      acc[u.status] = (acc[u.status] || 0) + 1;
-    }
-    return acc;
-  }, [users]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search]);
 
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    const [start, end] = dateRange || [];
-    return users.filter((u) => {
-      if (role !== "all" && u.role !== role) return false;
-      if (status !== "all" && u.status !== status) return false;
-      if (
-        term &&
-        !u.name.toLowerCase().includes(term) &&
-        !u.email.toLowerCase().includes(term) &&
-        !u.id.toLowerCase().includes(term)
-      )
-        return false;
-      if (start && dayjs(u.joinedAt).isBefore(start, "day")) return false;
-      if (end && dayjs(u.joinedAt).isAfter(end, "day")) return false;
-      return true;
-    });
-  }, [users, role, status, search, dateRange]);
+  const params = useMemo(
+    () => ({
+      page,
+      limit: PAGE_SIZE,
+      ...(role !== "all" ? { role } : {}),
+      ...(debouncedSearch ? { q: debouncedSearch } : {}),
+    }),
+    [page, role, debouncedSearch]
+  );
 
-  const applyStatus = (user: any, nextStatus: string) => {
-    setUsers((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, status: nextStatus } : u))
-    );
-    setSelected((prev: any) =>
-      prev && prev.id === user.id ? { ...prev, status: nextStatus } : prev
-    );
-  };
+  const { data, isLoading, isFetching, isError, error, refetch } = useUsers(params);
+  const buyerCount = useUsers({ role: "buyer", limit: 1 }).data?.total ?? 0;
+  const sellerCount = useUsers({ role: "seller", limit: 1 }).data?.total ?? 0;
+  const adminCount = useUsers({ role: "admin", limit: 1 }).data?.total ?? 0;
+  const createUser = useCreateUser();
 
-  const handleToggleStatus = (user: any) => {
-    if (user.status === "active") {
-      modal.confirm({
-        title: `Deactivate ${user.name}?`,
-        content:
-          "The user will lose access until reactivated. Existing orders are not affected.",
-        okText: "Deactivate",
-        okButtonProps: { danger: true },
-        cancelText: "Cancel",
-        onOk: () => {
-          applyStatus(user, "inactive");
-          message.success(`${user.name} deactivated`);
-        },
-      });
-    } else {
-      applyStatus(user, "active");
-      message.success(`${user.name} activated`);
+  const users = data?.items ?? [];
+  const total = data?.total ?? 0;
+
+  const handleCreate = async (values: CreateUserFormOutput) => {
+    const payload: CreateUserPayload = {
+      name: values.name,
+      email: values.email,
+      password: values.password,
+      role: values.role,
+    };
+    try {
+      await createUser.mutateAsync(payload);
+      message.success(`${values.name} created`);
+      setCreating(false);
+    } catch (err) {
+      message.error(getApiErrorMessage(err, "Could not create the user"));
     }
   };
 
   const handleResetFilters = () => {
     setRole("all");
-    setStatus("all");
     setSearch("");
-    setDateRange(null);
+    setPage(1);
   };
 
   const roleOptions = [
-    { value: "all", label: `All (${stats.total})` },
-    { value: "buyer", label: `Buyers (${stats.buyer || 0})` },
-    { value: "seller", label: `Sellers (${stats.seller || 0})` },
+    { value: "all", label: `All (${formatNumber(buyerCount + sellerCount + adminCount)})` },
+    { value: "buyer", label: `Buyers (${formatNumber(buyerCount)})` },
+    { value: "seller", label: `Sellers (${formatNumber(sellerCount)})` },
+    { value: "admin", label: `Admins (${formatNumber(adminCount)})` },
   ];
 
   const columns = [
@@ -295,10 +342,9 @@ export default function AdminUserManagementPage() {
       title: "User",
       dataIndex: "name",
       key: "name",
-      sorter: (a: any, b: any) => a.name.localeCompare(b.name),
-      render: (_: any, user: any) => (
+      render: (_: unknown, user: PlatformUser) => (
         <Space size={12}>
-          <Avatar src={user.avatar} icon={<UserOutlined />} />
+          <Avatar icon={<UserOutlined />} />
           <div style={{ minWidth: 0 }}>
             <a onClick={() => setSelected(user)} style={{ fontWeight: 500 }}>
               {user.name}
@@ -313,106 +359,41 @@ export default function AdminUserManagementPage() {
       ),
     },
     {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
-      width: 130,
-      render: (id: string) => (
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          {id}
-        </Text>
-      ),
-    },
-    {
       title: "Role",
       dataIndex: "role",
       key: "role",
-      width: 120,
-      filters: [
-        { text: "Buyer", value: "buyer" },
-        { text: "Seller", value: "seller" },
-      ],
-      onFilter: (value: any, record: any) => record.role === value,
-      render: (r: string) => <RoleTag role={r} />,
+      width: 140,
+      render: (value: UserRole) => <RoleTag role={value} />,
     },
     {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      width: 110,
-      render: (s: string) => <StatusTag status={s} />,
-    },
-    {
-      title: "Activity",
-      key: "activity",
-      width: 220,
-      render: (_: any, user: any) =>
-        user.role === "seller" ? (
-          <Text type="secondary" style={{ fontSize: 13 }}>
-            {formatNumber(user.productsCount)} products ·{" "}
-            {formatPrice(user.totalSales, "INR")}
-          </Text>
-        ) : (
-          <Text type="secondary" style={{ fontSize: 13 }}>
-            {formatNumber(user.ordersCount)} orders ·{" "}
-            {formatPrice(user.totalSpend, "INR")}
-          </Text>
-        ),
+      title: "Email",
+      dataIndex: "isEmailVerified",
+      key: "isEmailVerified",
+      width: 140,
+      render: (verified: boolean) => <VerifiedTag verified={verified} />,
     },
     {
       title: "Joined",
-      dataIndex: "joinedAt",
-      key: "joinedAt",
-      width: 130,
-      sorter: (a: any, b: any) => dayjs(a.joinedAt).valueOf() - dayjs(b.joinedAt).valueOf(),
-      defaultSortOrder: "descend" as const,
-      render: (joinedAt: string) => dayjs(joinedAt).format("DD MMM YYYY"),
+      dataIndex: "created_at",
+      key: "created_at",
+      width: 150,
+      render: (createdAt?: string) => (createdAt ? dayjs(createdAt).format("DD MMM YYYY") : "—"),
     },
     {
       title: "Actions",
       key: "actions",
-      width: 180,
+      width: 120,
       fixed: "right" as const,
-      render: (_: any, user: any) => {
-        const menuItems = [
-          {
-            key: "view",
-            icon: <EyeOutlined />,
-            label: "View profile",
-            onClick: () => setSelected(user),
-          },
-          { type: "divider" as const },
-          user.status === "active"
-            ? {
-                key: "deactivate",
-                icon: <StopOutlined />,
-                label: "Deactivate",
-                danger: true,
-                onClick: () => handleToggleStatus(user),
-              }
-            : {
-                key: "activate",
-                icon: <CheckCircleOutlined />,
-                label: "Activate",
-                onClick: () => handleToggleStatus(user),
-              },
-        ];
-        return (
-          <Space>
-            <Button
-              type="default"
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => setSelected(user)}
-            >
-              View
-            </Button>
-            <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
-              <Button type="default" size="small" icon={<MoreOutlined />} />
-            </Dropdown>
-          </Space>
-        );
-      },
+      render: (_: unknown, user: PlatformUser) => (
+        <Button
+          type="default"
+          size="small"
+          icon={<EyeOutlined />}
+          onClick={() => setSelected(user)}
+        >
+          View
+        </Button>
+      ),
     },
   ];
 
@@ -424,11 +405,21 @@ export default function AdminUserManagementPage() {
             User Management
           </Title>
           <Text type="secondary">
-            View, filter, and manage all buyers and sellers on the platform.
+            View, filter, and manage all buyers, sellers and admins on the platform.
           </Text>
         </Col>
         <Col>
           <Space>
+            <Tooltip title="Refresh">
+              <Button
+                type="default"
+                icon={<ReloadOutlined />}
+                loading={isFetching}
+                onClick={() => refetch()}
+              >
+                Refresh
+              </Button>
+            </Tooltip>
             <Tooltip title="Export to CSV">
               <Button
                 type="default"
@@ -438,110 +429,80 @@ export default function AdminUserManagementPage() {
                 Export
               </Button>
             </Tooltip>
-            <Button
-              type="primary"
-              icon={<UserAddOutlined />}
-              onClick={() => message.info("Add user coming soon")}
-            >
+            <Button type="primary" icon={<UserAddOutlined />} onClick={() => setCreating(true)}>
               Add user
             </Button>
           </Space>
         </Col>
       </Row>
 
+      {isError && (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginTop: 16 }}
+          message={getApiErrorMessage(error, "Could not load users")}
+          action={
+            <Button type="default" size="small" onClick={() => refetch()}>
+              Retry
+            </Button>
+          }
+        />
+      )}
+
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} sm={12} xl={6}>
           <StatCard
             icon={<TeamOutlined />}
             iconBg="#1677ff"
-            title="Total users"
-            value={stats.total}
+            title="Matching users"
+            value={total}
           />
         </Col>
         <Col xs={24} sm={12} xl={6}>
-          <StatCard
-            icon={<UserOutlined />}
-            iconBg="#3b82f6"
-            title="Buyers"
-            value={stats.buyer || 0}
-          />
+          <StatCard icon={<UserOutlined />} iconBg="#13c2c2" title="Buyers" value={buyerCount} />
+        </Col>
+        <Col xs={24} sm={12} xl={6}>
+          <StatCard icon={<ShopOutlined />} iconBg="#722ed1" title="Sellers" value={sellerCount} />
         </Col>
         <Col xs={24} sm={12} xl={6}>
           <StatCard
-            icon={<ShopOutlined />}
-            iconBg="#722ed1"
-            title="Sellers"
-            value={stats.seller || 0}
-          />
-        </Col>
-        <Col xs={24} sm={12} xl={6}>
-          <StatCard
-            icon={<CheckCircleOutlined />}
-            iconBg="#52c41a"
-            title="Active"
-            value={stats.active || 0}
-            suffix={
-              <Text type="secondary" style={{ fontSize: 12, marginLeft: 6 }}>
-                / {stats.inactive || 0} inactive
-              </Text>
-            }
+            icon={<SafetyCertificateOutlined />}
+            iconBg="#faad14"
+            title="Admins"
+            value={adminCount}
           />
         </Col>
       </Row>
 
       <Card style={{ marginTop: 16 }} styles={{ body: { padding: 16 } }}>
         <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} lg={10}>
+          <Col xs={24} lg={14}>
             <Segmented
               value={role}
-              onChange={setRole}
+              onChange={(value) => {
+                setRole(value as UserRole | "all");
+                setPage(1);
+              }}
               options={roleOptions}
               size="large"
               style={{ maxWidth: "100%", overflowX: "auto" }}
             />
           </Col>
-          <Col xs={24} sm={12} lg={5}>
-            <Select
-              size="large"
-              value={status}
-              onChange={setStatus}
-              style={{ width: "100%" }}
-              options={[
-                { value: "all", label: "All statuses" },
-                { value: "active", label: "Active" },
-                { value: "inactive", label: "Inactive" },
-              ]}
-            />
+          <Col xs={24} sm={12} lg={4}>
+            <Button size="large" block icon={<ReloadOutlined />} onClick={handleResetFilters}>
+              Reset
+            </Button>
           </Col>
-          <Col xs={24} sm={12} lg={9}>
-            <RangePicker
-              size="large"
-              style={{ width: "100%" }}
-              value={dateRange}
-              onChange={setDateRange}
-              allowClear
-              placeholder={["Joined from", "Joined to"]}
-            />
-          </Col>
-          <Col xs={24} md={18}>
-            <Input
+          <Col xs={24} lg={6}>
+            <AntInput
               size="large"
               allowClear
               prefix={<SearchOutlined style={{ color: "#8c8c8c" }} />}
-              placeholder="Search by name, email or user ID"
+              placeholder="Search by name or email"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-          </Col>
-          <Col xs={24} md={6}>
-            <Button
-              size="large"
-              block
-              icon={<ReloadOutlined />}
-              onClick={handleResetFilters}
-            >
-              Reset filters
-            </Button>
           </Col>
         </Row>
       </Card>
@@ -553,7 +514,7 @@ export default function AdminUserManagementPage() {
           <Space>
             <Text strong>Users</Text>
             <Tag color="blue" style={{ margin: 0 }}>
-              {formatNumber(filtered.length)} shown
+              {formatNumber(total)} total
             </Tag>
           </Space>
         }
@@ -561,29 +522,41 @@ export default function AdminUserManagementPage() {
         <Table
           rowKey="id"
           columns={columns}
-          dataSource={filtered}
-          pagination={{
-            pageSize: 8,
-            showSizeChanger: false,
-            showTotal: (total) => `${formatNumber(total)} users`,
+          dataSource={users}
+          loading={isLoading}
+          onChange={(pagination) => {
+            if (pagination.current) setPage(pagination.current);
           }}
-          scroll={{ x: 1100 }}
+          pagination={{
+            current: page,
+            pageSize: PAGE_SIZE,
+            total,
+            showSizeChanger: false,
+            showTotal: (count) => `${formatNumber(count)} users`,
+          }}
+          scroll={{ x: 900 }}
           locale={{
             emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="No users match these filters"
+                description={
+                  role !== "all" || debouncedSearch
+                    ? "No users match these filters"
+                    : "No users yet"
+                }
               />
             ),
           }}
         />
       </Card>
 
-      <ProfileDrawer
-        open={Boolean(selected)}
-        user={selected}
-        onClose={() => setSelected(null)}
-        onToggleStatus={handleToggleStatus}
+      <UserDrawer user={selected} onClose={() => setSelected(null)} />
+
+      <CreateUserModal
+        open={creating}
+        submitting={createUser.isPending}
+        onSubmit={handleCreate}
+        onClose={() => setCreating(false)}
       />
     </AppLayout>
   );

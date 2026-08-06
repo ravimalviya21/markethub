@@ -115,7 +115,7 @@ const StatCard = ({ icon, iconBg, title, value, suffix }: StatCardProps) => (
           value={value as number}
           formatter={(v) => formatNumber(Number(v))}
           suffix={suffix}
-          valueStyle={{ fontSize: 22, fontWeight: 600, lineHeight: 1.2 }}
+          styles={{ content: { fontSize: 22, fontWeight: 600, lineHeight: 1.2 } }}
         />
       </div>
     </Space>

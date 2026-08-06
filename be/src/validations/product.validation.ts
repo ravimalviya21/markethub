@@ -23,7 +23,7 @@ export const createProductSchema = z.object({
     description: z.string().max(5000).optional(),
     price: z.number().nonnegative().max(99999999.99),
     stock: z.number().int().min(0).optional().default(0),
-    status: z.enum(["draft", "pending"]).optional().default("draft"),
+    status: z.enum(PRODUCT_STATUSES).optional().default("draft"),
     images: z.array(productImageSchema).max(10).optional(),
 });
 

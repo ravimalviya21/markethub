@@ -18,7 +18,7 @@ interface CreateInput {
     description?: string;
     price: number;
     stock: number;
-    status: "draft" | "pending";
+    status: ProductStatus;
     images?: ProductImageInput[];
     userId: number;
     role: UserRole;
@@ -44,6 +44,7 @@ interface UpdateStatusInput {
 }
 
 const SELLER_ALLOWED_STATUSES: ProductStatus[] = ["draft", "pending", "archived"];
+const SELLER_ALLOWED_CREATE_STATUSES: ProductStatus[] = ["draft", "pending"];
 
 const slugify = (value: string) =>
     value
@@ -98,6 +99,12 @@ const visibilityFor = (viewer: Viewer): Pick<ListFilters, "visibleStatuses" | "o
 const ProductService = {
     async create({ userId, role, sellerId, name, categoryId, description, price, stock, status, images }: CreateInput) {
         const resolvedSellerId = await resolveSellerId({ role, userId, sellerId });
+        if (role !== "admin" && !SELLER_ALLOWED_CREATE_STATUSES.includes(status)) {
+            throw new AppError(
+                "A new product can only be saved as draft or submitted for review",
+                STATUS_CODES.FORBIDDEN
+            );
+        }
         await assertCategoryExists(categoryId);
 
         const id = await ProductModel.save({
