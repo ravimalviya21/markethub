@@ -108,6 +108,9 @@ export default function BuyerDashboardPage() {
       onCartClick={() => router.push("/buyer/cart")}
       onSearch={(term) => console.log("search:", term)}
       onChangeLocation={(loc) => console.log("location:", loc)}
+      onCategorySelect={(category) =>
+        router.push(`/buyer/products?categoryId=${category.id}`)
+      }
     >
         <div style={{ padding: "24px 24px 0" }}>
           <BannerCarousel banners={DASHBOARD_BANNERS} height={320} controls="both" />

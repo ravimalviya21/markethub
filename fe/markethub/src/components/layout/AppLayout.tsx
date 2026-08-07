@@ -1,6 +1,7 @@
 import { ComponentProps, CSSProperties, ReactNode } from "react";
 import { Layout } from "antd";
 
+import CategoryNav from "@/components/ui/CategoryNav";
 import Header from "@/components/layout/Header";
 import { HeaderRole } from "@/components/layout/Header/config";
 import { HeaderUser } from "@/components/layout/Header/ProfileMenu";
@@ -23,17 +24,24 @@ interface AppLayoutProps extends HeaderPassthrough {
   role?: HeaderRole;
   maxWidth?: number;
   contentStyle?: CSSProperties;
+  showCategoryNav?: boolean;
+  onCategorySelect?: ComponentProps<typeof CategoryNav>["onCategorySelect"];
 }
+
+const CATEGORY_NAV_ROLES: HeaderRole[] = ["guest", "buyer"];
 
 const AppLayout = ({
   children,
   role = "guest",
   maxWidth = 1280,
   contentStyle,
+  showCategoryNav,
+  onCategorySelect,
   user,
   ...headerProps
 }: AppLayoutProps) => {
   const profileMenuItems = useProfileMenuItems(role);
+  const categoryNavVisible = showCategoryNav ?? CATEGORY_NAV_ROLES.includes(role);
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f5f7fb" }}>
@@ -44,6 +52,11 @@ const AppLayout = ({
         profileMenuItems={profileMenuItems}
         {...headerProps}
       />
+
+      {categoryNavVisible && (
+        <CategoryNav maxWidth={maxWidth} onCategorySelect={onCategorySelect} />
+      )}
+
       <Layout.Content>
         <div
           style={{
