@@ -108,7 +108,7 @@ export default function BuyerWishlistPage() {
     <AppLayout
       role="buyer"
       cartCount={0}
-      onCartClick={() => router.push("/buyer/cart")}
+      onCartClick={() => router.push("/account/cart")}
       onSearch={(term) => console.log("search:", term)}
       onChangeLocation={(loc) => console.log("location:", loc)}
     >

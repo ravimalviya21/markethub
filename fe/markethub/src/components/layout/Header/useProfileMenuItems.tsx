@@ -40,16 +40,16 @@ const ROLE_LINKS: Record<HeaderRole, MenuLink[]> = {
   ],
   buyer: [
     { key: "dashboard", label: "Dashboard", icon: <DashboardOutlined />, href: "/buyer/dashboard" },
-    { key: "orders", label: "My orders", icon: <ShoppingOutlined />, href: "/buyer/orders" },
-    { key: "wishlist", label: "Wishlist", icon: <HeartOutlined />, href: "/buyer/wishlist" },
-    { key: "cart", label: "Cart", icon: <ShoppingCartOutlined />, href: "/buyer/cart" },
-    { key: "profile", label: "Profile", icon: <UserOutlined />, href: "/profile" },
+    { key: "orders", label: "My orders", icon: <ShoppingOutlined />, href: "/account/orders" },
+    { key: "wishlist", label: "Wishlist", icon: <HeartOutlined />, href: "/account/wishlist" },
+    { key: "cart", label: "Cart", icon: <ShoppingCartOutlined />, href: "/account/cart" },
+    { key: "profile", label: "Profile", icon: <UserOutlined />, href: "/account/profile" },
   ],
   seller: [
     { key: "dashboard", label: "Dashboard", icon: <DashboardOutlined />, href: "/seller/dashboard" },
     { key: "products", label: "Products", icon: <AppstoreOutlined />, href: "/seller/products" },
     { key: "orders", label: "Orders", icon: <ShoppingOutlined />, href: "/seller/orders" },
-    { key: "profile", label: "Profile", icon: <UserOutlined />, href: "/profile" },
+    { key: "profile", label: "Profile", icon: <UserOutlined />, href: "/account/profile" },
   ],
   admin: [
     { key: "dashboard", label: "Dashboard", icon: <DashboardOutlined />, href: "/admin/dashboard" },
@@ -61,13 +61,12 @@ const ROLE_LINKS: Record<HeaderRole, MenuLink[]> = {
 };
 
 interface ProfileMenuOptions {
-  /** Where to land after a successful logout. */
   redirectTo?: string;
 }
 
 export const useProfileMenuItems = (
   role: HeaderRole = DEFAULT_HEADER_ROLE,
-  { redirectTo = "/auth/login" }: ProfileMenuOptions = {}
+  { redirectTo = "/buyer/dashboard" }: ProfileMenuOptions = {}
 ): ProfileMenuItem[] => {
   const router = useRouter();
   const logout = useLogout({

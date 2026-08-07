@@ -1,5 +1,5 @@
 import { useMutation, UseMutationOptions, useQuery, UseQueryOptions, useQueryClient } from "@tanstack/react-query";
-import axiosInstance, { setAccessToken } from "@/config/axios";
+import axiosInstance, { resetAuthBootstrap, setAccessToken } from "@/config/axios";
 import { AUTH_ENDPOINTS, QUERY_KEYS } from "@/contants/endPoints";
 
 interface SignupPayload {
@@ -112,6 +112,7 @@ export const useLogout = (options: Partial<UseMutationOptions<any, any, void>> =
         ...options,
         onSuccess: (data, variables, onMutateResult, context) => {
             setAccessToken(null);
+            resetAuthBootstrap();
             queryClient.removeQueries({ queryKey: QUERY_KEYS.ME });
             options.onSuccess?.(data, variables, onMutateResult, context);
         },

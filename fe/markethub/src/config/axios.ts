@@ -1,7 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
-// Same-origin by default: proxied to the backend by the rewrite in next.config.ts,
-// so the refresh-token cookie is first-party and no CORS preflight is needed.
 const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "/api/proxy";
 
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
@@ -15,29 +13,62 @@ interface PendingRequest {
 
 let accessToken: string | null = null;
 
+type TokenListener = (token: string | null) => void;
+const tokenListeners = new Set<TokenListener>();
+
 export const setAccessToken = (token: string | null) => {
     accessToken = token || null;
+    tokenListeners.forEach((listener) => listener(accessToken));
+};
+
+export const subscribeToAccessToken = (listener: TokenListener) => {
+    tokenListeners.add(listener);
+    return () => {
+        tokenListeners.delete(listener);
+    };
 };
 
 export const getAccessToken = () => accessToken;
 
 const axiosInstance = axios.create({
     baseURL: BASE_URL,
-    withCredentials: true, // send httpOnly refresh-token cookie
+    withCredentials: true,
     headers: {
         "Content-Type": "application/json",
     },
 });
 
-// A bare client (no interceptors) used for the refresh call itself to avoid loops.
 const refreshClient = axios.create({
     baseURL: BASE_URL,
     withCredentials: true,
     headers: { "Content-Type": "application/json" },
 });
 
+let bootstrapPromise: Promise<string | null> | null = null;
+
+const runRefresh = async (): Promise<string | null> => {
+    try {
+        const { data } = await refreshClient.post("/auth/refresh-token");
+        setAccessToken(data?.data?.accessToken ?? null);
+    } catch {
+        setAccessToken(null);
+    }
+    return accessToken;
+};
+
+export const bootstrapAuth = (): Promise<string | null> => {
+    if (!bootstrapPromise) bootstrapPromise = runRefresh();
+    return bootstrapPromise;
+};
+
+export const resetAuthBootstrap = () => {
+    bootstrapPromise = null;
+};
+
 axiosInstance.interceptors.request.use(
-    (config) => {
+    async (config) => {
+        if (typeof window !== "undefined" && bootstrapPromise) await bootstrapPromise;
+
         if (accessToken) {
             config.headers = config.headers || {};
             config.headers.Authorization = `Bearer ${accessToken}`;
@@ -58,7 +89,6 @@ const processQueue = (error: unknown, token: string | null = null) => {
     pendingQueue = [];
 };
 
-// Endpoints that must NOT trigger a refresh attempt
 const AUTH_BYPASS = ["/auth/login", "/auth/signup", "/auth/refresh-token", "/auth/forget-password", "/auth/reset-password"];
 
 axiosInstance.interceptors.response.use(
@@ -90,11 +120,10 @@ axiosInstance.interceptors.response.use(
         isRefreshing = true;
 
         try {
-            const { data } = await refreshClient.post("/auth/refresh-token");
-            const newToken = data?.data?.accessToken;
+            resetAuthBootstrap();
+            const newToken = await bootstrapAuth();
             if (!newToken) throw new Error("No access token in refresh response");
 
-            setAccessToken(newToken);
             processQueue(null, newToken);
 
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -102,16 +131,13 @@ axiosInstance.interceptors.response.use(
         } catch (refreshError) {
             processQueue(refreshError, null);
             setAccessToken(null);
-
-            if (typeof window !== "undefined") {
-                // Optional: route user to login on hard refresh failure
-                // window.location.href = "/auth/login";
-            }
             return Promise.reject(refreshError);
         } finally {
             isRefreshing = false;
         }
     }
 );
+
+if (typeof window !== "undefined") bootstrapAuth();
 
 export default axiosInstance;

@@ -167,7 +167,7 @@ export default function BuyerCartPage() {
     <AppLayout
       role="buyer"
       cartCount={totalQuantity}
-      onCartClick={() => router.push("/buyer/cart")}
+      onCartClick={() => router.push("/account/cart")}
       onSearch={(term) => console.log("search:", term)}
       onChangeLocation={(loc) => console.log("location:", loc)}
     >

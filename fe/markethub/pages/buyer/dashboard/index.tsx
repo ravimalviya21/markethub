@@ -78,10 +78,9 @@ export default function BuyerDashboardPage() {
 
   return (
     <AppLayout
-      role="buyer"
       contentStyle={{ padding: 0, maxWidth: "none" }}
       cartCount={0}
-      onCartClick={() => router.push("/buyer/cart")}
+      onCartClick={() => router.push("/account/cart")}
       onSearch={(term) => router.push(`/buyer/products?q=${encodeURIComponent(term)}`)}
       onChangeLocation={(loc) => console.log("location:", loc)}
       onCategorySelect={(category) =>

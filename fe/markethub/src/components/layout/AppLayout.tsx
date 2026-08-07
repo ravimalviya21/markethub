@@ -6,18 +6,10 @@ import Header from "@/components/layout/Header";
 import { HeaderRole } from "@/components/layout/Header/config";
 import { HeaderUser } from "@/components/layout/Header/ProfileMenu";
 import { useProfileMenuItems } from "@/components/layout/Header/useProfileMenuItems";
+import { useSession } from "@/config/session";
 import { getDashboardForRole } from "@/utils/auth";
-import { USER_PROFILE } from "@/utils/dummy";
 
 type HeaderPassthrough = Omit<ComponentProps<typeof Header>, "role" | "profileMenuItems">;
-
-const FALLBACK_USERS: Partial<Record<HeaderRole, HeaderUser>> = {
-  buyer: {
-    name: `${USER_PROFILE.firstName} ${USER_PROFILE.lastName}`,
-    email: USER_PROFILE.email,
-    avatarUrl: USER_PROFILE.avatar,
-  },
-};
 
 interface AppLayoutProps extends HeaderPassthrough {
   children: ReactNode;
@@ -32,7 +24,7 @@ const CATEGORY_NAV_ROLES: HeaderRole[] = ["guest", "buyer"];
 
 const AppLayout = ({
   children,
-  role = "guest",
+  role,
   maxWidth = 1280,
   contentStyle,
   showCategoryNav,
@@ -40,15 +32,22 @@ const AppLayout = ({
   user,
   ...headerProps
 }: AppLayoutProps) => {
-  const profileMenuItems = useProfileMenuItems(role);
-  const categoryNavVisible = showCategoryNav ?? CATEGORY_NAV_ROLES.includes(role);
+  const session = useSession();
+  const resolvedRole = role ?? session.role;
+
+  const sessionUser: HeaderUser | undefined = session.user
+    ? { name: session.user.name, email: session.user.email }
+    : undefined;
+
+  const profileMenuItems = useProfileMenuItems(resolvedRole);
+  const categoryNavVisible = showCategoryNav ?? CATEGORY_NAV_ROLES.includes(resolvedRole);
 
   return (
     <Layout style={{ minHeight: "100vh", background: "#f5f7fb" }}>
       <Header
-        role={role}
-        user={user ?? FALLBACK_USERS[role]}
-        logoHref={role === "guest" ? "/" : getDashboardForRole(role)}
+        role={resolvedRole}
+        user={user ?? sessionUser}
+        logoHref={resolvedRole === "guest" ? "/" : getDashboardForRole(resolvedRole)}
         profileMenuItems={profileMenuItems}
         {...headerProps}
       />

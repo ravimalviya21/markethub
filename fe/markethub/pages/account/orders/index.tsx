@@ -503,7 +503,7 @@ export default function BuyerOrdersPage() {
       role="buyer"
       maxWidth={1100}
       cartCount={0}
-      onCartClick={() => router.push("/buyer/cart")}
+      onCartClick={() => router.push("/account/cart")}
       onSearch={(term) => console.log("search:", term)}
       onChangeLocation={(loc) => console.log("location:", loc)}
     >
