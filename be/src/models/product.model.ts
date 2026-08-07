@@ -10,6 +10,7 @@ interface SaveInput {
     categoryId?: number | null;
     description?: string | null;
     price: number;
+    mrp?: number | null;
     stock: number;
     status: ProductStatus;
     images?: ProductImageInput[];
@@ -22,9 +23,17 @@ interface UpdateInput {
     categoryId?: number | null;
     description?: string | null;
     price?: number;
+    mrp?: number | null;
     stock?: number;
     images?: ProductImageInput[];
     userId: number;
+}
+
+export interface FeedFilters {
+    limit: number;
+    categoryId?: number;
+    days?: number;
+    excludeIds?: number[];
 }
 
 export interface ListFilters {
@@ -58,8 +67,40 @@ const SORT_COLUMNS: Record<ListFilters["sortBy"], string> = {
 const normalizeProduct = <T extends ProductRow>(row: T): T => ({
     ...row,
     price: Number(row.price),
+    mrp: row.mrp == null ? null : Number(row.mrp),
     averageRating: Number(row.averageRating),
 });
+
+const FEED_SELECT = `SELECT p.*,
+    c.displayName AS categoryName,
+    u.name AS sellerName,
+    (SELECT pi.url
+        FROM product_images pi
+        WHERE pi.productId = p.id
+        ORDER BY pi.sortOrder ASC, pi.id ASC
+        LIMIT 1) AS primaryImageUrl`;
+
+const FEED_JOINS = `LEFT JOIN categories c ON c.id = p.categoryId
+    LEFT JOIN users u ON u.id = p.sellerId`;
+
+const BAYESIAN_MINIMUM_REVIEWS = 5;
+const FALLBACK_MEAN_RATING = 3.5;
+
+const buildFeedFilters = ({ categoryId, excludeIds }: FeedFilters) => {
+    const conditions = ["p.status = 'approved'", "p.stock > 0"];
+    const values: ExecuteValues[] = [];
+
+    if (categoryId) {
+        conditions.push("p.categoryId = ?");
+        values.push(categoryId);
+    }
+    if (excludeIds?.length) {
+        conditions.push(`p.id NOT IN (${excludeIds.map(() => "?").join(", ")})`);
+        values.push(...excludeIds);
+    }
+
+    return { where: conditions.join(" AND "), values };
+};
 
 const insertImages = async (
     conn: PoolConnection,
@@ -135,6 +176,7 @@ const ProductModel = {
         categoryId,
         description,
         price,
+        mrp,
         stock,
         status,
         images,
@@ -151,11 +193,12 @@ const ProductModel = {
                 categoryId,
                 description,
                 price,
+                mrp,
                 stock,
                 status,
                 createdBy,
                 updatedBy)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     name,
                     slug,
@@ -163,6 +206,7 @@ const ProductModel = {
                     categoryId ?? null,
                     description ?? null,
                     price,
+                    mrp ?? null,
                     stock,
                     status,
                     userId,
@@ -187,6 +231,7 @@ const ProductModel = {
         categoryId,
         description,
         price,
+        mrp,
         stock,
         images,
         userId,
@@ -208,6 +253,10 @@ const ProductModel = {
         if (price !== undefined) {
             fields.push("price = ?");
             values.push(price);
+        }
+        if (mrp !== undefined) {
+            fields.push("mrp = ?");
+            values.push(mrp);
         }
         if (stock !== undefined) {
             fields.push("stock = ?");
@@ -339,6 +388,84 @@ const ProductModel = {
             items: rows.map(normalizeProduct),
             total: Number(countRows[0]?.total ?? 0),
         };
+    },
+
+    async findDeals(filters: FeedFilters): Promise<ProductListItem[]> {
+        const { where, values } = buildFeedFilters(filters);
+        const [rows] = await pool.query<(ProductListItem & RowDataPacket)[]>(
+            `${FEED_SELECT}
+            FROM products p
+            ${FEED_JOINS}
+            WHERE ${where} AND p.mrp IS NOT NULL AND p.mrp > p.price
+            ORDER BY ((p.mrp - p.price) / p.mrp) DESC, p.reviewsCount DESC, p.id DESC
+            LIMIT ${filters.limit}`,
+            values
+        );
+        return rows.map(normalizeProduct);
+    },
+
+    async findTrending(filters: FeedFilters): Promise<ProductListItem[]> {
+        const { where, values } = buildFeedFilters(filters);
+        const [rows] = await pool.query<(ProductListItem & RowDataPacket)[]>(
+            `${FEED_SELECT}, sold.unitsSold
+            FROM (
+                SELECT oi.productId, SUM(oi.quantity) AS unitsSold
+                FROM order_items oi
+                JOIN orders o ON o.id = oi.orderId
+                WHERE o.createdAt >= (NOW() - INTERVAL ? DAY)
+                    AND o.status <> 'cancelled'
+                GROUP BY oi.productId
+            ) sold
+            JOIN products p ON p.id = sold.productId
+            ${FEED_JOINS}
+            WHERE ${where}
+            ORDER BY sold.unitsSold DESC, p.averageRating DESC, p.id DESC
+            LIMIT ${filters.limit}`,
+            [filters.days ?? 7, ...values]
+        );
+        return rows.map(normalizeProduct);
+    },
+
+    async findPopular(filters: FeedFilters): Promise<ProductListItem[]> {
+        const { where, values } = buildFeedFilters(filters);
+        const [rows] = await pool.query<(ProductListItem & RowDataPacket)[]>(
+            `${FEED_SELECT}
+            FROM products p
+            ${FEED_JOINS}
+            CROSS JOIN (
+                SELECT COALESCE(AVG(averageRating), ?) AS meanRating
+                FROM products
+                WHERE status = 'approved' AND reviewsCount > 0
+            ) g
+            WHERE ${where}
+            ORDER BY (
+                (p.reviewsCount / (p.reviewsCount + ?)) * p.averageRating
+                + (? / (p.reviewsCount + ?)) * g.meanRating
+            ) DESC, p.reviewsCount DESC, p.id DESC
+            LIMIT ${filters.limit}`,
+            [
+                FALLBACK_MEAN_RATING,
+                ...values,
+                BAYESIAN_MINIMUM_REVIEWS,
+                BAYESIAN_MINIMUM_REVIEWS,
+                BAYESIAN_MINIMUM_REVIEWS,
+            ]
+        );
+        return rows.map(normalizeProduct);
+    },
+
+    async findRecentWellRated(filters: FeedFilters): Promise<ProductListItem[]> {
+        const { where, values } = buildFeedFilters(filters);
+        const [rows] = await pool.query<(ProductListItem & RowDataPacket)[]>(
+            `${FEED_SELECT}
+            FROM products p
+            ${FEED_JOINS}
+            WHERE ${where}
+            ORDER BY p.averageRating DESC, p.createdAt DESC, p.id DESC
+            LIMIT ${filters.limit}`,
+            values
+        );
+        return rows.map(normalizeProduct);
     },
 
     async slugExists(slug: string): Promise<boolean> {

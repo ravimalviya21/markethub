@@ -2,7 +2,7 @@ import asyncHandler from "../utils/asyncHandler";
 import STATUS_CODES from "../contants/statusCode";
 import ProductService, { productViewer } from "../services/product.service";
 import { AuthUser, UserRole } from "../types/models";
-import { ListProductsQuery } from "../validations/product.validation";
+import { ListProductsQuery, ProductFeedQuery } from "../validations/product.validation";
 
 const ProductController = {
     create: asyncHandler(async (req, res) => {
@@ -51,6 +51,13 @@ const ProductController = {
         res.status(STATUS_CODES.OK).json({
             success: true,
             ...result,
+        });
+    }),
+    feed: asyncHandler(async (req, res) => {
+        const items = await ProductService.getFeed(req.validatedQuery as ProductFeedQuery);
+        res.status(STATUS_CODES.OK).json({
+            success: true,
+            data: items,
         });
     }),
     findById: asyncHandler(async (req, res) => {

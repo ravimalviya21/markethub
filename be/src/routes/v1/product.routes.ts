@@ -9,6 +9,7 @@ import {
     updateProductSchema,
     updateProductStatusSchema,
     listProductsQuerySchema,
+    productFeedQuerySchema,
     productIdParamSchema,
 } from "../../validations/product.validation";
 
@@ -44,6 +45,9 @@ route.get(
     validate(listProductsQuerySchema, "query"),
     ProductController.find
 );
+// Must stay above /product/:id so "feed" is not parsed as an id
+route.get("/product/feed", validate(productFeedQuerySchema, "query"), ProductController.feed);
+
 route.get(
     "/product/:id",
     optionalAuthenticate,

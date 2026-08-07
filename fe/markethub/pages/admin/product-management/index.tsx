@@ -102,6 +102,7 @@ const EMPTY_FORM: ProductFormValues = {
   categoryId: null,
   description: undefined,
   price: 0,
+  mrp: null,
   stock: 0,
   imageUrl: undefined,
 };
@@ -404,6 +405,7 @@ const ProductFormModal = ({
             categoryId: product.categoryId,
             description: product.description ?? undefined,
             price: product.price,
+            mrp: product.mrp,
             stock: product.stock,
             imageUrl: product.primaryImageUrl ?? undefined,
           }
@@ -514,7 +516,7 @@ const ProductFormModal = ({
       </div>
 
       <Row gutter={12}>
-        <Col span={12}>
+        <Col span={8}>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: "block", marginBottom: 6, fontSize: 14 }}>
               <span style={{ color: "#ff4d4f", marginRight: 4 }}>*</span>Price
@@ -543,7 +545,42 @@ const ProductFormModal = ({
             />
           </div>
         </Col>
-        <Col span={12}>
+        <Col span={8}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", marginBottom: 6, fontSize: 14 }}>
+              MRP{" "}
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                (drives the discount badge)
+              </Text>
+            </label>
+            <Controller
+              name="mrp"
+              control={control}
+              render={({ field, fieldState: { error } }) => (
+                <>
+                  <InputNumber
+                    {...field}
+                    value={field.value ?? undefined}
+                    onChange={(value) => field.onChange(value ?? null)}
+                    size="large"
+                    style={{ width: "100%" }}
+                    min={0}
+                    precision={2}
+                    prefix="₹"
+                    placeholder="Optional"
+                    status={error ? "error" : ""}
+                  />
+                  {error?.message && (
+                    <div style={{ marginTop: 4, fontSize: 12, color: "#ff4d4f" }}>
+                      {error.message}
+                    </div>
+                  )}
+                </>
+              )}
+            />
+          </div>
+        </Col>
+        <Col span={8}>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: "block", marginBottom: 6, fontSize: 14 }}>
               <span style={{ color: "#ff4d4f", marginRight: 4 }}>*</span>Stock
@@ -741,6 +778,7 @@ export default function AdminProductManagementPage() {
           categoryId: values.categoryId,
           description: values.description,
           price: values.price,
+          mrp: values.mrp,
           stock: values.stock,
           status: values.status,
           ...(values.imageUrl ? { images: [{ url: values.imageUrl, sortOrder: 0 }] } : {}),
@@ -754,6 +792,7 @@ export default function AdminProductManagementPage() {
           categoryId: values.categoryId,
           description: values.description,
           price: values.price,
+          mrp: values.mrp,
           stock: values.stock,
         };
         if ((values.imageUrl ?? "") !== (editing.primaryImageUrl ?? "")) {

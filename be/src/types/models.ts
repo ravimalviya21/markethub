@@ -59,6 +59,7 @@ export interface ProductRow {
     description: string | null;
     slug: string;
     price: number;
+    mrp: number | null;
     stock: number;
     status: ProductStatus;
     averageRating: number;

@@ -3,63 +3,24 @@ import { Avatar, Col, Row, Typography } from "antd";
 import { RightOutlined } from "@ant-design/icons";
 
 import AppLayout from "@/components/layout/AppLayout";
-import { BannerCarousel, ProductCard } from "@/components/ui";
-import {
-  DASHBOARD_BANNERS,
-  RECOMMENDED_PRODUCTS,
-  BEST_DEALS,
-  BRAND_HIGHLIGHTS,
-} from "@/utils/dummy";
+import { BannerCarousel, ProductRail } from "@/components/ui";
+import { Product, useProductFeed } from "@/services/product.service";
+import { DASHBOARD_BANNERS, BRAND_HIGHLIGHTS } from "@/utils/dummy";
 
 const { Title, Text, Link } = Typography;
 
-interface SectionHeaderProps {
-  title: string;
-  onViewAll?: () => void;
+const RAIL_SIZE = 8;
+
+interface Brand {
+  id: string;
+  name: string;
+  image: string;
+  tagline?: string;
 }
-
-const SectionHeader = ({ title, onViewAll }: SectionHeaderProps) => (
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 16,
-    }}
-  >
-    <Title level={4} style={{ margin: 0 }}>{title}</Title>
-    {onViewAll && (
-      <Link onClick={onViewAll} style={{ fontWeight: 500 }}>
-        View all <RightOutlined style={{ fontSize: 10 }} />
-      </Link>
-    )}
-  </div>
-);
-
-interface ProductGridProps {
-  products: any[];
-  onProductClick?: (product: any) => void;
-  onAddToCart?: (product: any) => void;
-}
-
-const ProductGrid = ({ products, onProductClick, onAddToCart }: ProductGridProps) => (
-  <Row gutter={[16, 16]}>
-    {products.map((product) => (
-      <Col key={product.id} xs={24} sm={12} md={8} lg={6}>
-        <ProductCard
-          product={product}
-          onClick={onProductClick}
-          onAddToCart={onAddToCart}
-          onToggleWishlist={(p) => console.log("wishlist:", p.id)}
-        />
-      </Col>
-    ))}
-  </Row>
-);
 
 interface BrandStripProps {
-  brands: any[];
-  onBrandClick?: (brand: any) => void;
+  brands: Brand[];
+  onBrandClick?: (brand: Brand) => void;
 }
 
 const BrandStrip = ({ brands, onBrandClick }: BrandStripProps) => (
@@ -100,13 +61,28 @@ const BrandStrip = ({ brands, onBrandClick }: BrandStripProps) => (
 export default function BuyerDashboardPage() {
   const router = useRouter();
 
+  const deals = useProductFeed({ type: "deals", limit: RAIL_SIZE });
+  const trending = useProductFeed({ type: "trending", limit: RAIL_SIZE });
+  const popular = useProductFeed({ type: "popular", limit: RAIL_SIZE });
+
+  const openProduct = (product: Product) => router.push(`/buyer/product/${product.id}`);
+  const addToCart = (product: Product) => console.log("add to cart:", product.id);
+  const toggleWishlist = (product: Product) => console.log("wishlist:", product.id);
+
+  const railHandlers = {
+    onProductClick: openProduct,
+    onAddToCart: addToCart,
+    onToggleWishlist: toggleWishlist,
+    skeletonCount: RAIL_SIZE,
+  };
+
   return (
     <AppLayout
       role="buyer"
       contentStyle={{ padding: 0, maxWidth: "none" }}
       cartCount={0}
       onCartClick={() => router.push("/buyer/cart")}
-      onSearch={(term) => console.log("search:", term)}
+      onSearch={(term) => router.push(`/buyer/products?q=${encodeURIComponent(term)}`)}
       onChangeLocation={(loc) => console.log("location:", loc)}
       onCategorySelect={(category) =>
         router.push(`/buyer/products?categoryId=${category.id}`)
@@ -119,35 +95,59 @@ export default function BuyerDashboardPage() {
           <Title level={3} style={{ marginTop: 8 }}>Welcome to MarketHub</Title>
           <Text type="secondary">Discover products curated just for you.</Text>
 
-          <section style={{ marginTop: 32 }}>
-            <SectionHeader
+          <div style={{ marginTop: 32 }}>
+            <ProductRail
               title="Recommended for you"
-              onViewAll={() => router.push("/buyer/recommended")}
+              subtitle="Powered by top rated picks until recommendations go live"
+              products={popular.data}
+              loading={popular.isLoading}
+              error={popular.error}
+              emptyText="No products to recommend yet"
+              onViewAll={() => router.push("/buyer/products?sort=popular")}
+              {...railHandlers}
             />
-            <ProductGrid
-              products={RECOMMENDED_PRODUCTS}
-              onProductClick={(p) => router.push(`/buyer/product/${p.id}`)}
-              onAddToCart={(p) => console.log("add to cart:", p.id)}
-            />
-          </section>
+          </div>
 
-          <section style={{ marginTop: 40 }}>
-            <SectionHeader
+          <div style={{ marginTop: 40 }}>
+            <ProductRail
               title="Best deals for today"
-              onViewAll={() => router.push("/buyer/deals")}
+              subtitle="Biggest savings against MRP right now"
+              products={deals.data}
+              loading={deals.isLoading}
+              error={deals.error}
+              emptyText="No discounted products right now"
+              onViewAll={() => router.push("/buyer/products?sort=deals")}
+              {...railHandlers}
             />
-            <ProductGrid
-              products={BEST_DEALS}
-              onProductClick={(p) => router.push(`/buyer/product/${p.id}`)}
-              onAddToCart={(p) => console.log("add to cart:", p.id)}
+          </div>
+
+          <div style={{ marginTop: 40 }}>
+            <ProductRail
+              title="Trending this week"
+              subtitle="Most ordered by shoppers over the last 7 days"
+              products={trending.data}
+              loading={trending.isLoading}
+              error={trending.error}
+              emptyText="No trending products yet"
+              onViewAll={() => router.push("/buyer/products?sort=trending")}
+              {...railHandlers}
             />
-          </section>
+          </div>
 
           <section style={{ marginTop: 40, marginBottom: 24 }}>
-            <SectionHeader
-              title="Brand highlights"
-              onViewAll={() => router.push("/buyer/brands")}
-            />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 16,
+              }}
+            >
+              <Title level={4} style={{ margin: 0 }}>Brand highlights</Title>
+              <Link onClick={() => router.push("/buyer/brands")} style={{ fontWeight: 500 }}>
+                View all <RightOutlined style={{ fontSize: 10 }} />
+              </Link>
+            </div>
             <BrandStrip
               brands={BRAND_HIGHLIGHTS}
               onBrandClick={(b) => router.push(`/buyer/brand/${b.id}`)}

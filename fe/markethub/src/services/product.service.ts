@@ -31,13 +31,26 @@ export interface Product {
     categoryName: string | null;
     description: string | null;
     price: number;
+    mrp: number | null;
     stock: number;
     status: ProductStatus;
     averageRating: number;
     reviewsCount: number;
     primaryImageUrl: string | null;
+    unitsSold?: number;
     createdAt?: string;
     updatedAt?: string;
+}
+
+export const PRODUCT_FEED_TYPES = ["deals", "trending", "popular"] as const;
+
+export type ProductFeedType = (typeof PRODUCT_FEED_TYPES)[number];
+
+export interface ProductFeedParams {
+    type: ProductFeedType;
+    limit?: number;
+    categoryId?: number;
+    days?: number;
 }
 
 export interface ProductImage {
@@ -87,6 +100,7 @@ export interface CreateProductPayload {
     categoryId?: number | null;
     description?: string;
     price: number;
+    mrp?: number | null;
     stock?: number;
     status?: ProductStatus;
     images?: ProductImagePayload[];
@@ -98,6 +112,7 @@ export interface UpdateProductPayload {
     categoryId?: number | null;
     description?: string;
     price?: number;
+    mrp?: number | null;
     stock?: number;
     images?: ProductImagePayload[];
 }
@@ -115,7 +130,9 @@ export interface ProductMutationResponse {
 const normalizeProduct = <T extends Product>(product: T): T => ({
     ...product,
     price: Number(product.price),
+    mrp: product.mrp == null ? null : Number(product.mrp),
     averageRating: Number(product.averageRating),
+    unitsSold: product.unitsSold == null ? undefined : Number(product.unitsSold),
 });
 
 const listProductsApi = async (params: ProductListParams): Promise<ProductListResponse> => {
@@ -128,6 +145,12 @@ const listProductsApi = async (params: ProductListParams): Promise<ProductListRe
         total: Number(res.data?.total ?? items.length),
         totalPages: Number(res.data?.totalPages ?? 0),
     };
+};
+
+const getProductFeedApi = async (params: ProductFeedParams): Promise<Product[]> => {
+    const res = await axiosInstance.get(PRODUCT_ENDPOINTS.FEED, { params });
+    const rows = res.data?.data ?? [];
+    return Array.isArray(rows) ? rows.map(normalizeProduct) : [];
 };
 
 const getProductApi = async (id: number | string): Promise<ProductDetail> => {
@@ -165,6 +188,17 @@ export const useProducts = (
         queryFn: () => listProductsApi(params),
         placeholderData: keepPreviousData,
         staleTime: 30 * 1000,
+        ...options,
+    });
+
+export const useProductFeed = (
+    params: ProductFeedParams,
+    options: Partial<UseQueryOptions<Product[], AxiosError>> = {}
+) =>
+    useQuery<Product[], AxiosError>({
+        queryKey: QUERY_KEYS.PRODUCT_FEED(params),
+        queryFn: () => getProductFeedApi(params),
+        staleTime: 60 * 1000,
         ...options,
     });
 

@@ -4,7 +4,7 @@ import ProductModel, { ListFilters } from "../models/product.model";
 import CategoryModel from "../models/category.model";
 import UserModel from "../models/user.model";
 import { AuthUser, ProductRow, ProductStatus, UserRole } from "../types/models";
-import { ListProductsQuery, ProductImageInput } from "../validations/product.validation";
+import { ListProductsQuery, ProductFeedQuery, ProductImageInput } from "../validations/product.validation";
 
 interface Viewer {
     id?: number;
@@ -17,6 +17,7 @@ interface CreateInput {
     categoryId?: number | null;
     description?: string;
     price: number;
+    mrp?: number | null;
     stock: number;
     status: ProductStatus;
     images?: ProductImageInput[];
@@ -30,6 +31,7 @@ interface UpdateInput {
     categoryId?: number | null;
     description?: string;
     price?: number;
+    mrp?: number | null;
     stock?: number;
     images?: ProductImageInput[];
     userId: number;
@@ -97,7 +99,7 @@ const visibilityFor = (viewer: Viewer): Pick<ListFilters, "visibleStatuses" | "o
 };
 
 const ProductService = {
-    async create({ userId, role, sellerId, name, categoryId, description, price, stock, status, images }: CreateInput) {
+    async create({ userId, role, sellerId, name, categoryId, description, price, mrp, stock, status, images }: CreateInput) {
         const resolvedSellerId = await resolveSellerId({ role, userId, sellerId });
         if (role !== "admin" && !SELLER_ALLOWED_CREATE_STATUSES.includes(status)) {
             throw new AppError(
@@ -114,6 +116,7 @@ const ProductService = {
             categoryId: categoryId ?? null,
             description: description ?? null,
             price,
+            mrp: mrp ?? null,
             stock,
             status,
             images,
@@ -128,6 +131,12 @@ const ProductService = {
         assertCanManage(existing, { id: userId, role });
 
         if (categoryId !== undefined) await assertCategoryExists(categoryId);
+
+        const effectivePrice = patch.price ?? existing.price;
+        const effectiveMrp = patch.mrp !== undefined ? patch.mrp : existing.mrp;
+        if (effectiveMrp != null && effectiveMrp < effectivePrice) {
+            throw new AppError("mrp cannot be lower than price", STATUS_CODES.BAD_REQUEST);
+        }
 
         const affectedRows = await ProductModel.update({ id, categoryId, ...patch, userId });
         if (affectedRows === 0) throw new AppError("Product not found", STATUS_CODES.NOT_FOUND);
@@ -165,6 +174,21 @@ const ProductService = {
             total,
             totalPages: Math.ceil(total / limit) || 0,
         };
+    },
+
+    async getFeed({ type, limit, categoryId, days }: ProductFeedQuery) {
+        if (type === "deals") return ProductModel.findDeals({ limit, categoryId });
+        if (type === "popular") return ProductModel.findPopular({ limit, categoryId });
+
+        const trending = await ProductModel.findTrending({ limit, categoryId, days });
+        if (trending.length >= limit) return trending;
+
+        const filler = await ProductModel.findRecentWellRated({
+            limit: limit - trending.length,
+            categoryId,
+            excludeIds: trending.map((product) => product.id),
+        });
+        return [...trending, ...filler];
     },
 
     async findById(id: number, viewer: Viewer) {

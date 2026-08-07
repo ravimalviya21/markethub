@@ -16,16 +16,24 @@ const productImageSchema = z.object({
     sortOrder: z.number().int().min(0).optional(),
 });
 
-export const createProductSchema = z.object({
-    name: z.string().trim().min(1).max(255),
-    sellerId: z.number().int().positive().optional(),
-    categoryId: z.number().int().positive().nullable().optional(),
-    description: z.string().max(5000).optional(),
-    price: z.number().nonnegative().max(99999999.99),
-    stock: z.number().int().min(0).optional().default(0),
-    status: z.enum(PRODUCT_STATUSES).optional().default("draft"),
-    images: z.array(productImageSchema).max(10).optional(),
-});
+const mrpNotBelowPrice = (data: { price?: number; mrp?: number | null }) =>
+    data.mrp == null || data.price == null || data.mrp >= data.price;
+
+const MRP_MESSAGE = { message: "mrp cannot be lower than price", path: ["mrp"] };
+
+export const createProductSchema = z
+    .object({
+        name: z.string().trim().min(1).max(255),
+        sellerId: z.number().int().positive().optional(),
+        categoryId: z.number().int().positive().nullable().optional(),
+        description: z.string().max(5000).optional(),
+        price: z.number().nonnegative().max(99999999.99),
+        mrp: z.number().nonnegative().max(99999999.99).nullable().optional(),
+        stock: z.number().int().min(0).optional().default(0),
+        status: z.enum(PRODUCT_STATUSES).optional().default("draft"),
+        images: z.array(productImageSchema).max(10).optional(),
+    })
+    .refine(mrpNotBelowPrice, MRP_MESSAGE);
 
 export const updateProductSchema = z
     .object({
@@ -33,12 +41,14 @@ export const updateProductSchema = z
         categoryId: z.number().int().positive().nullable().optional(),
         description: z.string().max(5000).optional(),
         price: z.number().nonnegative().max(99999999.99).optional(),
+        mrp: z.number().nonnegative().max(99999999.99).nullable().optional(),
         stock: z.number().int().min(0).optional(),
         images: z.array(productImageSchema).max(10).optional(),
     })
     .refine((data) => Object.keys(data).length > 0, {
         message: "At least one field must be provided",
-    });
+    })
+    .refine(mrpNotBelowPrice, MRP_MESSAGE);
 
 export const updateProductStatusSchema = z.object({
     status: z.enum(PRODUCT_STATUSES),
@@ -66,5 +76,16 @@ export const listProductsQuerySchema = z
         path: ["minPrice"],
     });
 
+export const PRODUCT_FEED_TYPES = ["deals", "trending", "popular"] as const;
+
+export const productFeedQuerySchema = z.object({
+    type: z.enum(PRODUCT_FEED_TYPES),
+    limit: z.coerce.number().int().positive().max(50).default(12),
+    categoryId: z.coerce.number().int().positive().optional(),
+    days: z.coerce.number().int().positive().max(90).default(7),
+});
+
 export type ListProductsQuery = z.infer<typeof listProductsQuerySchema>;
+export type ProductFeedQuery = z.infer<typeof productFeedQuerySchema>;
+export type ProductFeedType = (typeof PRODUCT_FEED_TYPES)[number];
 export type ProductImageInput = z.infer<typeof productImageSchema>;

@@ -47,6 +47,18 @@ export const productFormSchema = yup.object({
     .required("Price is required")
     .min(0, "Price cannot be negative")
     .max(PRODUCT_PRICE_MAX, "Price is too large"),
+  mrp: yup
+    .number()
+    .nullable()
+    .transform((value, original) => (original === "" || original == null ? null : value))
+    .min(0, "MRP cannot be negative")
+    .max(PRODUCT_PRICE_MAX, "MRP is too large")
+    .test(
+      "mrp-not-below-price",
+      "MRP cannot be lower than the selling price",
+      (value, context) => value == null || value >= context.parent.price
+    )
+    .default(null),
   stock: yup
     .number()
     .typeError("Stock is required")
@@ -70,6 +82,7 @@ export interface ProductFormValues {
   categoryId: number | null;
   description: string | undefined;
   price: number;
+  mrp: number | null;
   stock: number;
   imageUrl: string | undefined;
 }

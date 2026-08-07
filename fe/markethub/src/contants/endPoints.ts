@@ -21,6 +21,7 @@ export const CATEGORY_ENDPOINTS = {
 
 export const PRODUCT_ENDPOINTS = {
     LIST: "/product",
+    FEED: "/product/feed",
     CREATE: "/product",
     DETAIL: (id: number | string) => `/product/${id}`,
     UPDATE: (id: number | string) => `/product/${id}`,
@@ -39,6 +40,7 @@ export const QUERY_KEYS = {
     CATEGORY_CHILDREN: (id: number | string) => ["categories", "children", id],
     PRODUCTS: ["products"],
     PRODUCT_LIST: (params: unknown) => ["products", "list", params],
+    PRODUCT_FEED: (params: unknown) => ["products", "feed", params],
     PRODUCT_DETAIL: (id: number | string) => ["products", "detail", id],
     USERS: ["users"],
     USER_LIST: (params: unknown) => ["users", "list", params],
