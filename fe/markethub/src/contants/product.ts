@@ -9,6 +9,7 @@ import type { ProductFeedType, ProductListParams } from "@/services/product.serv
 
 export const PRODUCT_PAGE_SIZE = 12;
 export const CURATED_FEED_LIMIT = 50;
+export const PRODUCT_LIST_REVALIDATE_SECONDS = 300;
 export const LOW_STOCK_THRESHOLD = 10;
 export const RELATED_PRODUCTS_LIMIT = 8;
 export const RELATED_PRODUCTS_VISIBLE = 4;

@@ -1,25 +1,23 @@
 import { CSSProperties, useEffect, useMemo } from "react";
 import Head from "next/head";
-import type { GetServerSideProps } from "next";
+import type { GetStaticProps } from "next";
 import { useRouter } from "next/router";
 import { App, Col, Pagination, Row, Typography } from "antd";
-import { QueryClient, dehydrate } from "@tanstack/react-query";
+import { QueryClient, dehydrate, keepPreviousData } from "@tanstack/react-query";
 
 import AppLayout from "@/components/layout/AppLayout";
 import { Breadcrumbs, ProductFilter, ProductGrid } from "@/components/ui";
 import { Crumb, categoryCrumbs } from "@/components/ui/Breadcrumbs";
 import { ProductFilterPatch } from "@/components/ui/ProductFilter";
 import { fetchCategories, useCategories } from "@/services/category.service";
-import {
-  Product,
-  fetchProductFeed,
-  fetchProducts,
-  useProductFeed,
-  useProducts,
-} from "@/services/product.service";
+import { Product, fetchProducts, useProductFeed, useProducts } from "@/services/product.service";
 import serverApi from "@/server/api";
 import { QUERY_KEYS } from "@/contants/endPoints";
-import { PRODUCT_GRID_COLUMNS, PRODUCT_PAGE_SIZE } from "@/contants/product";
+import {
+  PRODUCT_GRID_COLUMNS,
+  PRODUCT_LIST_REVALIDATE_SECONDS,
+  PRODUCT_PAGE_SIZE,
+} from "@/contants/product";
 import { STICKY_PANEL_BOTTOM_GAP, STICKY_TOP_OFFSET, WIDE_CONTENT_MAX_WIDTH } from "@/contants/layout";
 import { getCategoryPath } from "@/utils/category";
 import {
@@ -41,31 +39,27 @@ const filterBodyStyle: CSSProperties = {
   overflowY: "auto",
 };
 
-export const getServerSideProps = (async ({ query }) => {
-  const { sortConfig, page, filters, isCurated } = parseProductListingQuery(query);
-  const queryClient = new QueryClient();
-
-  const feedParams = buildFeedParams(sortConfig, filters.categoryId);
+export const getStaticProps = (async () => {
+  const { sortConfig, page, filters } = parseProductListingQuery({});
   const listParams = buildListParams(sortConfig, page, filters);
+  const queryClient = new QueryClient();
 
   await Promise.all([
     queryClient.prefetchQuery({
       queryKey: QUERY_KEYS.CATEGORIES,
       queryFn: () => fetchCategories(serverApi),
     }),
-    isCurated
-      ? queryClient.prefetchQuery({
-          queryKey: QUERY_KEYS.PRODUCT_FEED(feedParams),
-          queryFn: () => fetchProductFeed(feedParams, serverApi),
-        })
-      : queryClient.prefetchQuery({
-          queryKey: QUERY_KEYS.PRODUCT_LIST(listParams),
-          queryFn: () => fetchProducts(listParams, serverApi),
-        }),
+    queryClient.prefetchQuery({
+      queryKey: QUERY_KEYS.PRODUCT_LIST(listParams),
+      queryFn: () => fetchProducts(listParams, serverApi),
+    }),
   ]);
 
-  return { props: { dehydratedState: dehydrate(queryClient) } };
-}) satisfies GetServerSideProps;
+  return {
+    props: { dehydratedState: dehydrate(queryClient) },
+    revalidate: PRODUCT_LIST_REVALIDATE_SECONDS,
+  };
+}) satisfies GetStaticProps;
 
 export default function BuyerProductsPage() {
   const router = useRouter();
@@ -100,7 +94,10 @@ export default function BuyerProductsPage() {
     [sortConfig, page, search, categoryId, minPrice, maxPrice]
   );
 
-  const feed = useProductFeed(feedParams, { enabled: isCurated });
+  const feed = useProductFeed(feedParams, {
+    enabled: isCurated,
+    placeholderData: keepPreviousData,
+  });
   const list = useProducts(listParams, { enabled: !isCurated });
 
   const curatedMatches = useMemo(
