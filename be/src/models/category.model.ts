@@ -68,6 +68,19 @@ const CategoryModel = {
             SELECT * from categories`);
         return rows;
     },
+    async findSubtreeIds(id: number | string): Promise<number[]> {
+        const [rows] = await pool.query<(RowDataPacket & { id: number })[]>(
+            `WITH RECURSIVE subtree (id) AS (
+                SELECT id FROM categories WHERE id = ?
+                UNION ALL
+                SELECT c.id FROM categories c
+                INNER JOIN subtree s ON c.parentId = s.id
+            )
+            SELECT id FROM subtree`,
+            [id]
+        );
+        return rows.map((row) => row.id);
+    },
     async findByParentId({ id }: { id: number | string }): Promise<CategoryRow[]> {
         const [rows] = await pool.execute<(CategoryRow & RowDataPacket)[]>(
             `SELECT * from categories

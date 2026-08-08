@@ -31,7 +31,7 @@ interface UpdateInput {
 
 export interface FeedFilters {
     limit: number;
-    categoryId?: number;
+    categoryIds?: number[];
     days?: number;
     excludeIds?: number[];
 }
@@ -41,7 +41,7 @@ export interface ListFilters {
     limit: number;
     q?: string;
     status?: ProductStatus;
-    categoryId?: number;
+    categoryIds?: number[];
     sellerId?: number;
     minPrice?: number;
     maxPrice?: number;
@@ -86,13 +86,13 @@ const FEED_JOINS = `LEFT JOIN categories c ON c.id = p.categoryId
 const BAYESIAN_MINIMUM_REVIEWS = 5;
 const FALLBACK_MEAN_RATING = 3.5;
 
-const buildFeedFilters = ({ categoryId, excludeIds }: FeedFilters) => {
+const buildFeedFilters = ({ categoryIds, excludeIds }: FeedFilters) => {
     const conditions = ["p.status = 'approved'", "p.stock > 0"];
     const values: ExecuteValues[] = [];
 
-    if (categoryId) {
-        conditions.push("p.categoryId = ?");
-        values.push(categoryId);
+    if (categoryIds?.length) {
+        conditions.push(`p.categoryId IN (${categoryIds.map(() => "?").join(", ")})`);
+        values.push(...categoryIds);
     }
     if (excludeIds?.length) {
         conditions.push(`p.id NOT IN (${excludeIds.map(() => "?").join(", ")})`);
@@ -141,9 +141,9 @@ const buildFilters = (filters: ListFilters) => {
         conditions.push("p.status = ?");
         values.push(filters.status);
     }
-    if (filters.categoryId) {
-        conditions.push("p.categoryId = ?");
-        values.push(filters.categoryId);
+    if (filters.categoryIds?.length) {
+        conditions.push(`p.categoryId IN (${filters.categoryIds.map(() => "?").join(", ")})`);
+        values.push(...filters.categoryIds);
     }
     if (filters.sellerId) {
         conditions.push("p.sellerId = ?");

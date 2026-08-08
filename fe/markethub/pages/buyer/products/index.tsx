@@ -1,31 +1,35 @@
 import { CSSProperties, useEffect, useMemo } from "react";
 import Head from "next/head";
+import type { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { App, Col, Pagination, Row, Typography } from "antd";
+import { QueryClient, dehydrate } from "@tanstack/react-query";
 
 import AppLayout from "@/components/layout/AppLayout";
 import { Breadcrumbs, ProductFilter, ProductGrid } from "@/components/ui";
 import { Crumb, categoryCrumbs } from "@/components/ui/Breadcrumbs";
 import { ProductFilterPatch } from "@/components/ui/ProductFilter";
-import { useCategories } from "@/services/category.service";
-import { Product, useProductFeed, useProducts } from "@/services/product.service";
+import { fetchCategories, useCategories } from "@/services/category.service";
 import {
-  DEFAULT_PRODUCT_SORT,
-  PRODUCT_GRID_COLUMNS,
-  PRODUCT_PAGE_SIZE,
-  PRODUCT_SORT_MAP,
-  ProductSortValue,
-} from "@/contants/product";
+  Product,
+  fetchProductFeed,
+  fetchProducts,
+  useProductFeed,
+  useProducts,
+} from "@/services/product.service";
+import serverApi from "@/server/api";
+import { QUERY_KEYS } from "@/contants/endPoints";
+import { PRODUCT_GRID_COLUMNS, PRODUCT_PAGE_SIZE } from "@/contants/product";
 import { STICKY_PANEL_BOTTOM_GAP, STICKY_TOP_OFFSET, WIDE_CONTENT_MAX_WIDTH } from "@/contants/layout";
 import { getCategoryPath } from "@/utils/category";
 import {
-  ProductFilters,
   buildFeedParams,
   buildListParams,
   filterProducts,
   getListingCopy,
+  parseProductListingQuery,
 } from "@/utils/product";
-import { firstValue, paginate, toPositiveInt, toPrice } from "@/utils/customMethods";
+import { paginate } from "@/utils/customMethods";
 
 const { Title, Text } = Typography;
 
@@ -37,21 +41,37 @@ const filterBodyStyle: CSSProperties = {
   overflowY: "auto",
 };
 
+export const getServerSideProps = (async ({ query }) => {
+  const { sortConfig, page, filters, isCurated } = parseProductListingQuery(query);
+  const queryClient = new QueryClient();
+
+  const feedParams = buildFeedParams(sortConfig, filters.categoryId);
+  const listParams = buildListParams(sortConfig, page, filters);
+
+  await Promise.all([
+    queryClient.prefetchQuery({
+      queryKey: QUERY_KEYS.CATEGORIES,
+      queryFn: () => fetchCategories(serverApi),
+    }),
+    isCurated
+      ? queryClient.prefetchQuery({
+          queryKey: QUERY_KEYS.PRODUCT_FEED(feedParams),
+          queryFn: () => fetchProductFeed(feedParams, serverApi),
+        })
+      : queryClient.prefetchQuery({
+          queryKey: QUERY_KEYS.PRODUCT_LIST(listParams),
+          queryFn: () => fetchProducts(listParams, serverApi),
+        }),
+  ]);
+
+  return { props: { dehydratedState: dehydrate(queryClient) } };
+}) satisfies GetServerSideProps;
+
 export default function BuyerProductsPage() {
   const router = useRouter();
   const { message } = App.useApp();
 
-  const rawSort = firstValue(router.query.sort);
-  const sort = (rawSort && PRODUCT_SORT_MAP[rawSort] ? rawSort : DEFAULT_PRODUCT_SORT) as ProductSortValue;
-  const sortConfig = PRODUCT_SORT_MAP[sort];
-  const page = toPositiveInt(firstValue(router.query.page)) ?? 1;
-
-  const filters: ProductFilters = {
-    search: (firstValue(router.query.q) ?? "").trim(),
-    categoryId: toPositiveInt(firstValue(router.query.categoryId)),
-    minPrice: toPrice(firstValue(router.query.minPrice)),
-    maxPrice: toPrice(firstValue(router.query.maxPrice)),
-  };
+  const { sort, sortConfig, page, filters, isCurated } = parseProductListingQuery(router.query);
   const { search = "", categoryId, minPrice, maxPrice } = filters;
 
   const applyQuery = (
@@ -70,8 +90,6 @@ export default function BuyerProductsPage() {
     router.replace({ pathname: "/buyer/products", query: next }, undefined, { shallow: true });
   };
 
-  const isCurated = Boolean(sortConfig.feedType);
-
   const feedParams = useMemo(
     () => buildFeedParams(sortConfig, categoryId),
     [sortConfig, categoryId]
@@ -82,8 +100,8 @@ export default function BuyerProductsPage() {
     [sortConfig, page, search, categoryId, minPrice, maxPrice]
   );
 
-  const feed = useProductFeed(feedParams, { enabled: router.isReady && isCurated });
-  const list = useProducts(listParams, { enabled: router.isReady && !isCurated });
+  const feed = useProductFeed(feedParams, { enabled: isCurated });
+  const list = useProducts(listParams, { enabled: !isCurated });
 
   const curatedMatches = useMemo(
     () => (isCurated ? filterProducts(feed.data ?? [], { search, minPrice, maxPrice }) : []),
@@ -102,7 +120,7 @@ export default function BuyerProductsPage() {
   const error = isCurated ? feed.error : list.error;
 
   useEffect(() => {
-    if (!router.isReady || loading || totalPages === 0 || page <= totalPages) return;
+    if (loading || totalPages === 0 || page <= totalPages) return;
     const query = { ...router.query };
     delete query.page;
     router.replace({ pathname: "/buyer/products", query }, undefined, { shallow: true });

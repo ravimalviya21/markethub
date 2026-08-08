@@ -90,6 +90,12 @@ const assertCanManage = (product: ProductRow, { id, role }: Viewer) => {
     }
 };
 
+const resolveCategoryIds = async (categoryId?: number) => {
+    if (!categoryId) return undefined;
+    const ids = await CategoryModel.findSubtreeIds(categoryId);
+    return ids.length ? ids : [categoryId];
+};
+
 const visibilityFor = (viewer: Viewer): Pick<ListFilters, "visibleStatuses" | "ownSellerId"> => {
     if (viewer.role === "admin") return {};
     if (viewer.role === "seller" && viewer.id) {
@@ -161,9 +167,12 @@ const ProductService = {
     },
 
     async find(query: ListProductsQuery, viewer: Viewer) {
-        const { page, limit } = query;
+        const { page, limit, categoryId, ...rest } = query;
         const { items, total } = await ProductModel.find({
-            ...query,
+            ...rest,
+            page,
+            limit,
+            categoryIds: await resolveCategoryIds(categoryId),
             ...visibilityFor(viewer),
         });
 
@@ -177,15 +186,17 @@ const ProductService = {
     },
 
     async getFeed({ type, limit, categoryId, days }: ProductFeedQuery) {
-        if (type === "deals") return ProductModel.findDeals({ limit, categoryId });
-        if (type === "popular") return ProductModel.findPopular({ limit, categoryId });
+        const categoryIds = await resolveCategoryIds(categoryId);
 
-        const trending = await ProductModel.findTrending({ limit, categoryId, days });
+        if (type === "deals") return ProductModel.findDeals({ limit, categoryIds });
+        if (type === "popular") return ProductModel.findPopular({ limit, categoryIds });
+
+        const trending = await ProductModel.findTrending({ limit, categoryIds, days });
         if (trending.length >= limit) return trending;
 
         const filler = await ProductModel.findRecentWellRated({
             limit: limit - trending.length,
-            categoryId,
+            categoryIds,
             excludeIds: trending.map((product) => product.id),
         });
         return [...trending, ...filler];

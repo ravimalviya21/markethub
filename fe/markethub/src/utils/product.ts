@@ -1,6 +1,14 @@
 import { Product as ApiProduct, ProductDetail, ProductFeedParams, ProductListParams } from "@/services/product.service";
 import { Product as ProductCardModel } from "@/components/ui/ProductCard";
-import { CURATED_FEED_LIMIT, PRODUCT_PAGE_SIZE, ProductSortConfig } from "@/contants/product";
+import {
+    CURATED_FEED_LIMIT,
+    DEFAULT_PRODUCT_SORT,
+    PRODUCT_PAGE_SIZE,
+    PRODUCT_SORT_MAP,
+    ProductSortConfig,
+    ProductSortValue,
+} from "@/contants/product";
+import { firstValue, toPositiveInt, toPrice } from "@/utils/customMethods";
 
 export const toProductCardModel = (product: ApiProduct): ProductCardModel => ({
     id: product.id,
@@ -33,6 +41,37 @@ export interface ProductFilters {
     minPrice?: number;
     maxPrice?: number;
 }
+
+export interface ProductListingQuery {
+    sort: ProductSortValue;
+    sortConfig: ProductSortConfig;
+    page: number;
+    filters: ProductFilters;
+    isCurated: boolean;
+}
+
+export const parseProductListingQuery = (
+    query: Record<string, string | string[] | undefined>
+): ProductListingQuery => {
+    const rawSort = firstValue(query.sort);
+    const sort = (
+        rawSort && PRODUCT_SORT_MAP[rawSort] ? rawSort : DEFAULT_PRODUCT_SORT
+    ) as ProductSortValue;
+    const sortConfig = PRODUCT_SORT_MAP[sort];
+
+    return {
+        sort,
+        sortConfig,
+        page: toPositiveInt(firstValue(query.page)) ?? 1,
+        filters: {
+            search: (firstValue(query.q) ?? "").trim(),
+            categoryId: toPositiveInt(firstValue(query.categoryId)),
+            minPrice: toPrice(firstValue(query.minPrice)),
+            maxPrice: toPrice(firstValue(query.maxPrice)),
+        },
+        isCurated: Boolean(sortConfig.feedType),
+    };
+};
 
 export const filterProducts = (
     products: ApiProduct[],
