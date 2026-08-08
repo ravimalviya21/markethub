@@ -1,0 +1,6 @@
+export const HEADER_HEIGHT = 64;
+export const STICKY_TOP_OFFSET = HEADER_HEIGHT + 16;
+export const STICKY_PANEL_BOTTOM_GAP = 80;
+
+export const CONTENT_MAX_WIDTH = 1280;
+export const WIDE_CONTENT_MAX_WIDTH = 1440;

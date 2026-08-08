@@ -33,3 +33,22 @@ export const computeDiscount = (price: number, originalPrice: number | null | un
   if (!originalPrice || originalPrice <= price) return null;
   return Math.round(((originalPrice - price) / originalPrice) * 100);
 };
+
+export const formatCount = (value: number | null | undefined) =>
+  Number(value ?? 0).toLocaleString("en-IN");
+
+export const firstValue = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] : value;
+
+export const toPositiveInt = (value: string | undefined) => {
+  const parsed = Number(value);
+  return value && Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : undefined;
+};
+
+export const toPrice = (value: string | undefined) => {
+  const parsed = Number(value);
+  return value && Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+};
+
+export const paginate = <T>(items: T[], page: number, pageSize: number) =>
+  items.slice((page - 1) * pageSize, page * pageSize);

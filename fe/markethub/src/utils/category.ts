@@ -56,6 +56,19 @@ export const buildCategoryTree = (
   return prune(roots);
 };
 
+export interface CategoryTreeOption {
+  title: string;
+  value: number;
+  children?: CategoryTreeOption[];
+}
+
+export const toCategoryTreeData = (nodes: CategoryNode[]): CategoryTreeOption[] =>
+  nodes.map((node) => ({
+    title: node.displayName,
+    value: node.id,
+    ...(node.children.length ? { children: toCategoryTreeData(node.children) } : {}),
+  }));
+
 export const getCategoryPath = (
   categories: Category[] | null | undefined,
   id: number | string | null | undefined

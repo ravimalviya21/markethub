@@ -138,8 +138,11 @@ const normalizeProduct = <T extends Product>(product: T): T => {
     } as T;
 };
 
-const listProductsApi = async (params: ProductListParams): Promise<ProductListResponse> => {
-    const res = await axiosInstance.get(PRODUCT_ENDPOINTS.LIST, { params });
+export const fetchProducts = async (
+    params: ProductListParams,
+    client: AxiosInstance = axiosInstance
+): Promise<ProductListResponse> => {
+    const res = await client.get(PRODUCT_ENDPOINTS.LIST, { params });
     const items = Array.isArray(res.data?.items) ? res.data.items.map(normalizeProduct) : [];
     return {
         items,
@@ -159,8 +162,11 @@ export const fetchProductFeed = async (
     return Array.isArray(rows) ? rows.map(normalizeProduct) : [];
 };
 
-const getProductApi = async (id: number | string): Promise<ProductDetail> => {
-    const res = await axiosInstance.get(PRODUCT_ENDPOINTS.DETAIL(id));
+export const fetchProduct = async (
+    id: number | string,
+    client: AxiosInstance = axiosInstance
+): Promise<ProductDetail> => {
+    const res = await client.get(PRODUCT_ENDPOINTS.DETAIL(id));
     return normalizeProduct(res.data?.data);
 };
 
@@ -191,7 +197,7 @@ export const useProducts = (
 ) =>
     useQuery<ProductListResponse, AxiosError>({
         queryKey: QUERY_KEYS.PRODUCT_LIST(params),
-        queryFn: () => listProductsApi(params),
+        queryFn: () => fetchProducts(params),
         placeholderData: keepPreviousData,
         staleTime: 30 * 1000,
         ...options,
@@ -214,7 +220,7 @@ export const useProduct = (
 ) =>
     useQuery<ProductDetail, AxiosError>({
         queryKey: QUERY_KEYS.PRODUCT_DETAIL(id ?? ""),
-        queryFn: () => getProductApi(id as number | string),
+        queryFn: () => fetchProduct(id as number | string),
         enabled: id != null && id !== "",
         ...options,
     });
