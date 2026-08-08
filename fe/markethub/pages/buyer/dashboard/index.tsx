@@ -1,15 +1,31 @@
+import type { GetStaticProps } from "next";
 import { useRouter } from "next/router";
 import { Avatar, Col, Row, Typography } from "antd";
 import { RightOutlined } from "@ant-design/icons";
+import { QueryClient, dehydrate } from "@tanstack/react-query";
 
 import AppLayout from "@/components/layout/AppLayout";
 import { BannerCarousel, ProductRail } from "@/components/ui";
-import { Product, useProductFeed } from "@/services/product.service";
+import {
+  Product,
+  ProductFeedParams,
+  fetchProductFeed,
+  useProductFeed,
+} from "@/services/product.service";
+import { fetchCategories } from "@/services/category.service";
+import serverApi from "@/server/api";
+import { QUERY_KEYS } from "@/contants/endPoints";
 import { DASHBOARD_BANNERS, BRAND_HIGHLIGHTS } from "@/utils/dummy";
 
 const { Title, Text, Link } = Typography;
 
 const RAIL_SIZE = 8;
+const HOME_REVALIDATE_SECONDS = 300;
+const FEED_STALE_TIME = HOME_REVALIDATE_SECONDS * 1000;
+
+const DEALS_FEED: ProductFeedParams = { type: "deals", limit: RAIL_SIZE };
+const TRENDING_FEED: ProductFeedParams = { type: "trending", limit: RAIL_SIZE };
+const POPULAR_FEED: ProductFeedParams = { type: "popular", limit: RAIL_SIZE };
 
 interface Brand {
   id: string;
@@ -58,12 +74,34 @@ const BrandStrip = ({ brands, onBrandClick }: BrandStripProps) => (
   </Row>
 );
 
+export const getStaticProps = (async () => {
+  const queryClient = new QueryClient();
+
+  await Promise.all([
+    queryClient.prefetchQuery({
+      queryKey: QUERY_KEYS.CATEGORIES,
+      queryFn: () => fetchCategories(serverApi),
+    }),
+    ...[DEALS_FEED, TRENDING_FEED, POPULAR_FEED].map((params) =>
+      queryClient.prefetchQuery({
+        queryKey: QUERY_KEYS.PRODUCT_FEED(params),
+        queryFn: () => fetchProductFeed(params, serverApi),
+      })
+    ),
+  ]);
+
+  return {
+    props: { dehydratedState: dehydrate(queryClient) },
+    revalidate: HOME_REVALIDATE_SECONDS,
+  };
+}) satisfies GetStaticProps;
+
 export default function BuyerDashboardPage() {
   const router = useRouter();
 
-  const deals = useProductFeed({ type: "deals", limit: RAIL_SIZE });
-  const trending = useProductFeed({ type: "trending", limit: RAIL_SIZE });
-  const popular = useProductFeed({ type: "popular", limit: RAIL_SIZE });
+  const deals = useProductFeed(DEALS_FEED, { staleTime: FEED_STALE_TIME });
+  const trending = useProductFeed(TRENDING_FEED, { staleTime: FEED_STALE_TIME });
+  const popular = useProductFeed(POPULAR_FEED, { staleTime: FEED_STALE_TIME });
 
   const openProduct = (product: Product) => router.push(`/buyer/product/${product.id}`);
   const addToCart = (product: Product) => console.log("add to cart:", product.id);

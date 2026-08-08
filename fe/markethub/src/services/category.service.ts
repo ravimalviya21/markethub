@@ -1,5 +1,5 @@
 import { useMutation, UseMutationOptions, useQuery, UseQueryOptions, useQueryClient } from "@tanstack/react-query";
-import { AxiosError } from "axios";
+import { AxiosError, AxiosInstance } from "axios";
 import axiosInstance from "@/config/axios";
 import { CATEGORY_ENDPOINTS, QUERY_KEYS } from "@/contants/endPoints";
 
@@ -39,8 +39,10 @@ const normalizeCategory = (row: Record<string, unknown>): Category => ({
     parentId: row.parentId == null ? null : Number(row.parentId),
 });
 
-const listCategoriesApi = async (): Promise<Category[]> => {
-    const res = await axiosInstance.get(CATEGORY_ENDPOINTS.LIST);
+export const fetchCategories = async (
+    client: AxiosInstance = axiosInstance
+): Promise<Category[]> => {
+    const res = await client.get(CATEGORY_ENDPOINTS.LIST);
     const rows = res.data?.data ?? [];
     return Array.isArray(rows) ? rows.map(normalizeCategory) : [];
 };
@@ -81,8 +83,8 @@ const updateCategoryApi = async ({
 export const useCategories = (options: Partial<UseQueryOptions<Category[], AxiosError>> = {}) =>
     useQuery<Category[], AxiosError>({
         queryKey: QUERY_KEYS.CATEGORIES,
-        queryFn: listCategoriesApi,
-        staleTime: 60 * 1000,
+        queryFn: () => fetchCategories(),
+        staleTime: 5 * 60 * 1000,
         ...options,
     });
 

@@ -6,7 +6,7 @@ import {
     UseQueryOptions,
     useQueryClient,
 } from "@tanstack/react-query";
-import { AxiosError } from "axios";
+import { AxiosError, AxiosInstance } from "axios";
 import axiosInstance from "@/config/axios";
 import { PRODUCT_ENDPOINTS, QUERY_KEYS } from "@/contants/endPoints";
 
@@ -127,13 +127,16 @@ export interface ProductMutationResponse {
     data: { id: number; status?: ProductStatus };
 }
 
-const normalizeProduct = <T extends Product>(product: T): T => ({
-    ...product,
-    price: Number(product.price),
-    mrp: product.mrp == null ? null : Number(product.mrp),
-    averageRating: Number(product.averageRating),
-    unitsSold: product.unitsSold == null ? undefined : Number(product.unitsSold),
-});
+const normalizeProduct = <T extends Product>(product: T): T => {
+    const { unitsSold, ...rest } = product;
+    return {
+        ...rest,
+        price: Number(product.price),
+        mrp: product.mrp == null ? null : Number(product.mrp),
+        averageRating: Number(product.averageRating),
+        ...(unitsSold == null ? {} : { unitsSold: Number(unitsSold) }),
+    } as T;
+};
 
 const listProductsApi = async (params: ProductListParams): Promise<ProductListResponse> => {
     const res = await axiosInstance.get(PRODUCT_ENDPOINTS.LIST, { params });
@@ -147,8 +150,11 @@ const listProductsApi = async (params: ProductListParams): Promise<ProductListRe
     };
 };
 
-const getProductFeedApi = async (params: ProductFeedParams): Promise<Product[]> => {
-    const res = await axiosInstance.get(PRODUCT_ENDPOINTS.FEED, { params });
+export const fetchProductFeed = async (
+    params: ProductFeedParams,
+    client: AxiosInstance = axiosInstance
+): Promise<Product[]> => {
+    const res = await client.get(PRODUCT_ENDPOINTS.FEED, { params });
     const rows = res.data?.data ?? [];
     return Array.isArray(rows) ? rows.map(normalizeProduct) : [];
 };
@@ -197,7 +203,7 @@ export const useProductFeed = (
 ) =>
     useQuery<Product[], AxiosError>({
         queryKey: QUERY_KEYS.PRODUCT_FEED(params),
-        queryFn: () => getProductFeedApi(params),
+        queryFn: () => fetchProductFeed(params),
         staleTime: 60 * 1000,
         ...options,
     });

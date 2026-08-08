@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { AppProps } from "next/app";
 import { ConfigProvider, App as AntApp, ThemeConfig } from "antd";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { HydrationBoundary, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@/styles/global.css";
 import { SessionProvider } from "@/config/session";
 
@@ -30,7 +30,9 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       <ConfigProvider theme={theme}>
         <AntApp>
           <SessionProvider>
-            <Component {...pageProps} />
+            <HydrationBoundary state={pageProps.dehydratedState}>
+              <Component {...pageProps} />
+            </HydrationBoundary>
           </SessionProvider>
         </AntApp>
       </ConfigProvider>
