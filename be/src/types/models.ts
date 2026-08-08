@@ -94,6 +94,15 @@ export interface ShippingAddress {
     country: string;
 }
 
+export interface CartItemRow {
+    id: number;
+    userId: number;
+    productId: number;
+    quantity: number;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 export interface OrderRow {
     id: number;
     orderNumber: string;

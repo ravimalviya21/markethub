@@ -1,130 +1,228 @@
 import { useMemo, useState } from "react";
+import Head from "next/head";
 import { useRouter } from "next/router";
 import {
-  App,
   Affix,
+  Alert,
+  App,
   Card,
   Col,
   Divider,
   Empty,
-  Image,
   Input as AntInput,
-  Radio,
   Row,
+  Skeleton,
   Space,
   Tag,
   Typography,
 } from "antd";
 import {
   DeleteOutlined,
-  EnvironmentOutlined,
-  HeartOutlined,
-  HomeOutlined,
   MinusOutlined,
   PlusOutlined,
   SafetyCertificateOutlined,
+  ShoppingOutlined,
   TagOutlined,
 } from "@ant-design/icons";
 
 import AppLayout from "@/components/layout/AppLayout";
-import { Button } from "@/components/ui";
-import { BUYER_CART, CART_COUPONS, USER_PROFILE } from "@/utils/dummy";
-import { formatPrice } from "@/utils/customMethods";
+import { Breadcrumbs, Button } from "@/components/ui";
+import { Crumb } from "@/components/ui/Breadcrumbs";
+import { withCloudinaryTransform } from "@/config/cloudinary";
+import { useSession } from "@/config/session";
+import {
+  CartItem,
+  useBuyerCart,
+  useClearCart,
+  useRemoveCartItem,
+  useUpdateCartItem,
+} from "@/services/cart.service";
+import { CART_COUPONS, Coupon, computeCartTotals } from "@/utils/cart";
+import { CONTENT_MAX_WIDTH } from "@/contants/layout";
+import { computeDiscount, formatPrice, getApiErrorMessage } from "@/utils/customMethods";
 
 const { Title, Text } = Typography;
 
-const computeTotals = (items: any[], coupon: any) => {
-  const eligible = items.filter((item) => item.inStock !== false);
-  const subtotal = eligible.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
+interface CartLineProps {
+  item: CartItem;
+  busy: boolean;
+  onQuantityChange: (item: CartItem, quantity: number) => void;
+  onRemove: (item: CartItem) => void;
+  onOpen: (item: CartItem) => void;
+}
+
+const CartLine = ({ item, busy, onQuantityChange, onRemove, onOpen }: CartLineProps) => {
+  const discount = computeDiscount(item.price, item.mrp);
+  const atStockLimit = item.quantity >= item.stock;
+
+  return (
+    <div style={{ padding: 16 }}>
+      <Row gutter={[16, 12]} align="top">
+        <Col xs={6} sm={4}>
+          <div
+            onClick={() => onOpen(item)}
+            style={{
+              aspectRatio: "1 / 1",
+              borderRadius: 8,
+              overflow: "hidden",
+              background: "#f5f7fb",
+              cursor: "pointer",
+            }}
+          >
+            {item.primaryImageUrl ? (
+              <img
+                src={withCloudinaryTransform(item.primaryImageUrl, "w_240,h_240,c_fill,f_auto,q_auto")}
+                alt={item.name}
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              />
+            ) : null}
+          </div>
+        </Col>
+
+        <Col xs={18} sm={20}>
+          <Row justify="space-between" align="top" gutter={[8, 8]}>
+            <Col flex="auto" style={{ minWidth: 0 }}>
+              <Text
+                strong
+                ellipsis
+                style={{ display: "block", cursor: "pointer" }}
+                onClick={() => onOpen(item)}
+              >
+                {item.name}
+              </Text>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Sold by {item.sellerName || `Seller #${item.sellerId}`}
+              </Text>
+
+              {!item.available && (
+                <div style={{ marginTop: 4 }}>
+                  <Tag color="red">
+                    {item.status === "approved" ? "Out of stock" : "No longer available"}
+                  </Tag>
+                </div>
+              )}
+
+              <Space size={8} align="baseline" style={{ marginTop: 8 }} wrap>
+                <Text strong style={{ fontSize: 16 }}>
+                  {formatPrice(item.price, "INR")}
+                </Text>
+                {discount != null && (
+                  <>
+                    <Text delete type="secondary" style={{ fontSize: 13 }}>
+                      {formatPrice(item.mrp, "INR")}
+                    </Text>
+                    <Text style={{ color: "#52c41a", fontSize: 13 }}>{discount}% off</Text>
+                  </>
+                )}
+              </Space>
+            </Col>
+            <Col>
+              <Text strong>{formatPrice(item.lineTotal, "INR")}</Text>
+            </Col>
+          </Row>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
+              marginTop: 12,
+            }}
+          >
+            <Space.Compact>
+              <Button
+                size="small"
+                type="default"
+                icon={<MinusOutlined />}
+                disabled={busy || !item.available || item.quantity <= 1}
+                onClick={() => onQuantityChange(item, item.quantity - 1)}
+              />
+              <Button size="small" type="default" style={{ pointerEvents: "none", minWidth: 44 }}>
+                {item.quantity}
+              </Button>
+              <Button
+                size="small"
+                type="default"
+                icon={<PlusOutlined />}
+                disabled={busy || !item.available || atStockLimit}
+                onClick={() => onQuantityChange(item, item.quantity + 1)}
+              />
+            </Space.Compact>
+
+            {item.available && atStockLimit && (
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Only {item.stock} in stock
+              </Text>
+            )}
+
+            <Button
+              size="small"
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              disabled={busy}
+              onClick={() => onRemove(item)}
+            >
+              Remove
+            </Button>
+          </div>
+        </Col>
+      </Row>
+    </div>
   );
-  const mrpTotal = eligible.reduce(
-    (sum, item) => sum + (item.originalPrice || item.price) * item.quantity,
-    0
-  );
-  const productDiscount = Math.max(0, mrpTotal - subtotal);
-
-  let couponDiscount = 0;
-  let shipping = subtotal > 0 && subtotal < 999 ? 49 : 0;
-
-  if (coupon && subtotal > 0) {
-    if (coupon.type === "percent") {
-      couponDiscount = Math.min(
-        Math.round((subtotal * coupon.value) / 100),
-        coupon.maxDiscount || Infinity
-      );
-    } else if (coupon.type === "flat") {
-      if (!coupon.minOrder || subtotal >= coupon.minOrder) {
-        couponDiscount = coupon.value;
-      }
-    } else if (coupon.type === "shipping") {
-      shipping = 0;
-    }
-  }
-
-  const total = Math.max(0, subtotal - couponDiscount + shipping);
-  return { subtotal, mrpTotal, productDiscount, couponDiscount, shipping, total };
 };
 
 export default function BuyerCartPage() {
   const router = useRouter();
   const { modal, message } = App.useApp();
-  const [items, setItems] = useState(BUYER_CART);
+  const { status, isAuthenticated } = useSession();
+
   const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<(typeof CART_COUPONS)[number] | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
 
-  const user = USER_PROFILE;
-  const [addressId, setAddressId] = useState(
-    user.addresses.find((a) => a.isDefault)?.id || user.addresses[0]?.id
-  );
+  const { data: cart, isLoading, error } = useBuyerCart();
+  const updateItem = useUpdateCartItem();
+  const removeItem = useRemoveCartItem();
+  const clearCart = useClearCart();
 
-  const totals = useMemo(
-    () => computeTotals(items, appliedCoupon),
-    [items, appliedCoupon]
-  );
+  const items = cart?.items ?? [];
+  const summary = cart?.summary;
+  const busy = updateItem.isPending || removeItem.isPending || clearCart.isPending;
 
-  const totalQuantity = useMemo(
-    () =>
-      items
-        .filter((item) => item.inStock !== false)
-        .reduce((sum, item) => sum + item.quantity, 0),
-    [items]
-  );
+  const totals = useMemo(() => computeCartTotals(summary, appliedCoupon), [summary, appliedCoupon]);
 
-  const handleQuantity = (id: string, delta: number) => {
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item;
-        const next = item.quantity + delta;
-        if (next < 1) return item;
-        if (item.maxQuantity && next > item.maxQuantity) {
-          message.info(`Only ${item.maxQuantity} available`);
-          return item;
-        }
-        return { ...item, quantity: next };
-      })
-    );
+  const runMutation = async (action: Promise<unknown>, successText?: string) => {
+    try {
+      await action;
+      if (successText) message.success(successText);
+    } catch (err) {
+      message.error(getApiErrorMessage(err, "Could not update your cart"));
+    }
   };
 
-  const handleRemove = (item: (typeof BUYER_CART)[number]) => {
+  const handleQuantityChange = (item: CartItem, quantity: number) =>
+    runMutation(updateItem.mutateAsync({ productId: item.productId, quantity }));
+
+  const handleRemove = (item: CartItem) =>
     modal.confirm({
-      title: `Remove ${item.title}?`,
+      title: `Remove ${item.name}?`,
       content: "This item will be removed from your cart.",
       okText: "Remove",
       okButtonProps: { danger: true },
       cancelText: "Keep",
-      onOk: () => {
-        setItems((prev) => prev.filter((i) => i.id !== item.id));
-        message.success("Removed from cart");
-      },
+      onOk: () => runMutation(removeItem.mutateAsync(item.productId), "Removed from cart"),
     });
-  };
 
-  const handleMoveToWishlist = (item: (typeof BUYER_CART)[number]) => {
-    setItems((prev) => prev.filter((i) => i.id !== item.id));
-    message.success("Moved to wishlist");
-  };
+  const handleClear = () =>
+    modal.confirm({
+      title: "Empty your cart?",
+      content: "All items will be removed.",
+      okText: "Empty cart",
+      okButtonProps: { danger: true },
+      cancelText: "Cancel",
+      onOk: () => runMutation(clearCart.mutateAsync(), "Cart emptied"),
+    });
 
   const handleApplyCoupon = (code?: string) => {
     const trimmed = (code || couponCode).trim().toUpperCase();
@@ -132,7 +230,7 @@ export default function BuyerCartPage() {
       message.warning("Enter a coupon code");
       return;
     }
-    const match = CART_COUPONS.find((c) => c.code === trimmed);
+    const match = CART_COUPONS.find((coupon) => coupon.code === trimmed);
     if (!match) {
       message.error("Invalid coupon code");
       return;
@@ -148,31 +246,41 @@ export default function BuyerCartPage() {
     message.success(`${match.code} applied`);
   };
 
-  const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
-    setCouponCode("");
-    message.success("Coupon removed");
-  };
-
   const handleCheckout = () => {
-    const inStockCount = items.filter((i) => i.inStock !== false).length;
-    if (!inStockCount) {
+    if (!totals.totalQuantity) {
       message.warning("No items available to checkout");
       return;
     }
-    message.success(`Placing order for ${formatPrice(totals.total, "INR")}`);
+    message.info("Checkout is coming soon");
   };
+
+  const crumbs: Crumb[] = [
+    { label: "Home", href: "/buyer/dashboard" },
+    { label: "My cart" },
+  ];
+
+  const sessionLoading = status === "loading";
+  const showSignedOut = !sessionLoading && !isAuthenticated;
+  const showLoading = sessionLoading || isLoading;
+  const isEmpty = !showLoading && !error && items.length === 0;
 
   return (
     <AppLayout
-      role="buyer"
-      cartCount={totalQuantity}
+      contentStyle={{ maxWidth: CONTENT_MAX_WIDTH }}
+      cartCount={summary?.totalQuantity ?? 0}
       onCartClick={() => router.push("/account/cart")}
-      onSearch={(term) => console.log("search:", term)}
-      onChangeLocation={(loc) => console.log("location:", loc)}
+      onSearch={(term) => router.push(`/buyer/products?q=${encodeURIComponent(term)}`)}
+      onCategorySelect={(category) => router.push(`/buyer/products?categoryId=${category.id}`)}
     >
-        <div>
-          <Title level={3} style={{ marginTop: 8 }}>
+      <Head>
+        <title>My cart · MarketHub</title>
+      </Head>
+
+      <Breadcrumbs items={crumbs} style={{ marginBottom: 12 }} />
+
+      <Row align="middle" justify="space-between" gutter={[16, 8]}>
+        <Col>
+          <Title level={3} style={{ marginTop: 0, marginBottom: 4 }}>
             My Cart
           </Title>
           <Text type="secondary">
@@ -180,437 +288,252 @@ export default function BuyerCartPage() {
               ? `${items.length} item${items.length > 1 ? "s" : ""} in your cart`
               : "Your cart is empty."}
           </Text>
+        </Col>
+        {items.length > 0 && (
+          <Col>
+            <Button type="default" danger disabled={busy} onClick={handleClear}>
+              Empty cart
+            </Button>
+          </Col>
+        )}
+      </Row>
 
-          {items.length === 0 ? (
-            <Card style={{ marginTop: 24 }}>
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="Your cart is empty"
-              >
-                <Button onClick={() => router.push("/buyer/dashboard")}>
-                  Continue shopping
-                </Button>
-              </Empty>
+      {showSignedOut && (
+        <Card style={{ marginTop: 24 }}>
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="Sign in to see the items in your cart"
+          >
+            <Button onClick={() => router.push("/auth/login")}>Sign in</Button>
+          </Empty>
+        </Card>
+      )}
+
+      {!showSignedOut && error && (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginTop: 24 }}
+          message={getApiErrorMessage(error, "Could not load your cart")}
+        />
+      )}
+
+      {!showSignedOut && showLoading && (
+        <Card style={{ marginTop: 24 }}>
+          <Skeleton active avatar paragraph={{ rows: 6 }} />
+        </Card>
+      )}
+
+      {!showSignedOut && isEmpty && (
+        <Card style={{ marginTop: 24 }}>
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Your cart is empty">
+            <Button icon={<ShoppingOutlined />} onClick={() => router.push("/buyer/products")}>
+              Continue shopping
+            </Button>
+          </Empty>
+        </Card>
+      )}
+
+      {!showSignedOut && items.length > 0 && (
+        <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
+          <Col xs={24} lg={15}>
+            {summary != null && summary.unavailableCount > 0 && (
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message={`${summary.unavailableCount} item${
+                  summary.unavailableCount > 1 ? "s are" : " is"
+                } unavailable and excluded from your total`}
+              />
+            )}
+
+            <Card title={`Items (${items.length})`} styles={{ body: { padding: 0 } }}>
+              {items.map((item, index) => (
+                <div key={item.productId}>
+                  <CartLine
+                    item={item}
+                    busy={busy}
+                    onQuantityChange={handleQuantityChange}
+                    onRemove={handleRemove}
+                    onOpen={(cartItem) => router.push(`/buyer/product/${cartItem.productId}`)}
+                  />
+                  {index < items.length - 1 && <Divider style={{ margin: 0 }} />}
+                </div>
+              ))}
             </Card>
-          ) : (
-            <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
-              <Col xs={24} lg={15}>
+          </Col>
+
+          <Col xs={24} lg={9}>
+            <Affix offsetTop={24}>
+              <div>
                 <Card
                   title={
                     <Space>
-                      <EnvironmentOutlined />
-                      <span>Deliver to</span>
+                      <TagOutlined />
+                      <span>Coupons</span>
                     </Space>
                   }
                   styles={{ body: { padding: 16 } }}
                 >
-                  <Radio.Group
-                    value={addressId}
-                    onChange={(e) => setAddressId(e.target.value)}
-                    style={{ width: "100%" }}
-                  >
-                    <Space direction="vertical" size={12} style={{ width: "100%" }}>
-                      {user.addresses.map((addr) => (
-                        <Radio
-                          key={addr.id}
-                          value={addr.id}
-                          style={{
-                            display: "block",
-                            padding: 12,
-                            border: "1px solid #f0f0f0",
-                            borderRadius: 8,
-                            width: "100%",
-                          }}
-                        >
-                          <Space size={6}>
-                            {addr.label === "Home" ? (
-                              <HomeOutlined />
-                            ) : (
-                              <EnvironmentOutlined />
-                            )}
-                            <Text strong>{addr.label}</Text>
-                            {addr.isDefault && (
-                              <Tag color="blue" style={{ marginLeft: 4 }}>
-                                Default
-                              </Tag>
-                            )}
-                          </Space>
-                          <div style={{ fontSize: 13, marginTop: 4 }}>
-                            {addr.name} &middot; {addr.phone}
-                          </div>
-                          <Text
-                            type="secondary"
-                            style={{ fontSize: 12, display: "block" }}
-                          >
-                            {addr.line1}
-                            {addr.line2 ? `, ${addr.line2}` : ""}, {addr.city},{" "}
-                            {addr.state} {addr.pincode}
-                          </Text>
-                        </Radio>
-                      ))}
-                    </Space>
-                  </Radio.Group>
-                </Card>
-
-                <Card
-                  style={{ marginTop: 16 }}
-                  title={`Items (${items.length})`}
-                  styles={{ body: { padding: 0 } }}
-                >
-                  {items.map((item, idx) => (
-                    <div key={item.id}>
-                      <div style={{ padding: 16 }}>
-                        <Row gutter={[16, 12]} align="top">
-                          <Col xs={6} sm={4}>
-                            <Image
-                              src={item.image}
-                              alt={item.title}
-                              preview={false}
-                              style={{
-                                width: "100%",
-                                aspectRatio: "1 / 1",
-                                objectFit: "cover",
-                                borderRadius: 8,
-                              }}
-                            />
-                          </Col>
-                          <Col xs={18} sm={20}>
-                            <Row
-                              justify="space-between"
-                              align="top"
-                              gutter={[8, 8]}
-                            >
-                              <Col flex="auto" style={{ minWidth: 0 }}>
-                                <Text
-                                  strong
-                                  ellipsis
-                                  style={{ display: "block" }}
-                                >
-                                  {item.title}
-                                </Text>
-                                <Text type="secondary" style={{ fontSize: 12 }}>
-                                  Sold by {item.seller}
-                                </Text>
-                                {item.inStock === false && (
-                                  <div style={{ marginTop: 4 }}>
-                                    <Tag color="red">Out of stock</Tag>
-                                  </div>
-                                )}
-                                <Space
-                                  size={8}
-                                  align="baseline"
-                                  style={{ marginTop: 8 }}
-                                  wrap
-                                >
-                                  <Text strong style={{ fontSize: 16 }}>
-                                    {formatPrice(item.price, "INR")}
-                                  </Text>
-                                  {item.originalPrice &&
-                                    item.originalPrice > item.price && (
-                                      <>
-                                        <Text
-                                          delete
-                                          type="secondary"
-                                          style={{ fontSize: 13 }}
-                                        >
-                                          {formatPrice(
-                                            item.originalPrice,
-                                            "INR"
-                                          )}
-                                        </Text>
-                                        <Text
-                                          style={{
-                                            color: "#52c41a",
-                                            fontSize: 13,
-                                          }}
-                                        >
-                                          {Math.round(
-                                            ((item.originalPrice - item.price) /
-                                              item.originalPrice) *
-                                              100
-                                          )}
-                                          % off
-                                        </Text>
-                                      </>
-                                    )}
-                                </Space>
-                              </Col>
-                              <Col>
-                                <Text strong>
-                                  {formatPrice(
-                                    item.price * item.quantity,
-                                    "INR"
-                                  )}
-                                </Text>
-                              </Col>
-                            </Row>
-
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 12,
-                                flexWrap: "wrap",
-                                marginTop: 12,
-                              }}
-                            >
-                              <Space.Compact>
-                                <Button
-                                  size="small"
-                                  icon={<MinusOutlined />}
-                                  disabled={
-                                    item.quantity <= 1 || item.inStock === false
-                                  }
-                                  onClick={() => handleQuantity(item.id, -1)}
-                                />
-                                <Button
-                                  size="small"
-                                  style={{
-                                    pointerEvents: "none",
-                                    minWidth: 40,
-                                  }}
-                                >
-                                  {item.quantity}
-                                </Button>
-                                <Button
-                                  size="small"
-                                  icon={<PlusOutlined />}
-                                  disabled={item.inStock === false}
-                                  onClick={() => handleQuantity(item.id, 1)}
-                                />
-                              </Space.Compact>
-
-                              <Button
-                                size="small"
-                                type="text"
-                                icon={<HeartOutlined />}
-                                onClick={() => handleMoveToWishlist(item)}
-                              >
-                                Move to wishlist
-                              </Button>
-                              <Button
-                                size="small"
-                                type="text"
-                                danger
-                                icon={<DeleteOutlined />}
-                                onClick={() => handleRemove(item)}
-                              >
-                                Remove
-                              </Button>
-                            </div>
-                          </Col>
-                        </Row>
-                      </div>
-                      {idx < items.length - 1 && (
-                        <Divider style={{ margin: 0 }} />
-                      )}
-                    </div>
-                  ))}
-                </Card>
-              </Col>
-
-              <Col xs={24} lg={9}>
-                <Affix offsetTop={24}>
-                  <div>
-                    <Card
-                      title={
-                        <Space>
-                          <TagOutlined />
-                          <span>Coupons</span>
-                        </Space>
-                      }
-                      styles={{ body: { padding: 16 } }}
+                  {appliedCoupon ? (
+                    <div
+                      style={{
+                        padding: 12,
+                        border: "1px dashed #52c41a",
+                        borderRadius: 8,
+                        background: "#f6ffed",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
                     >
-                      {appliedCoupon ? (
-                        <div
-                          style={{
-                            padding: 12,
-                            border: "1px dashed #52c41a",
-                            borderRadius: 8,
-                            background: "#f6ffed",
-                          }}
-                        >
-                          <Space
+                      <div style={{ minWidth: 0 }}>
+                        <Text strong style={{ color: "#389e0d" }}>
+                          {appliedCoupon.code}
+                        </Text>
+                        <div style={{ fontSize: 12, color: "#595959" }}>
+                          {appliedCoupon.description}
+                        </div>
+                      </div>
+                      <Button
+                        size="small"
+                        type="text"
+                        danger
+                        onClick={() => {
+                          setAppliedCoupon(null);
+                          setCouponCode("");
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <Space.Compact style={{ width: "100%" }}>
+                        <AntInput
+                          placeholder="Enter coupon code"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          onPressEnter={() => handleApplyCoupon()}
+                        />
+                        <Button onClick={() => handleApplyCoupon()}>Apply</Button>
+                      </Space.Compact>
+
+                      <Space direction="vertical" size={8} style={{ width: "100%", marginTop: 12 }}>
+                        {CART_COUPONS.map((coupon) => (
+                          <div
+                            key={coupon.code}
                             style={{
-                              width: "100%",
+                              display: "flex",
                               justifyContent: "space-between",
+                              alignItems: "center",
+                              padding: 8,
+                              border: "1px solid #f0f0f0",
+                              borderRadius: 8,
                             }}
                           >
-                            <div>
-                              <Text strong style={{ color: "#389e0d" }}>
-                                {appliedCoupon.code}
+                            <div style={{ minWidth: 0 }}>
+                              <Text strong style={{ fontSize: 13 }}>
+                                {coupon.code}
                               </Text>
-                              <div style={{ fontSize: 12, color: "#595959" }}>
-                                {appliedCoupon.description}
+                              <div style={{ fontSize: 11, color: "#8c8c8c" }}>
+                                {coupon.description}
                               </div>
                             </div>
                             <Button
                               size="small"
-                              type="text"
-                              danger
-                              onClick={handleRemoveCoupon}
+                              type="link"
+                              onClick={() => handleApplyCoupon(coupon.code)}
                             >
-                              Remove
+                              Apply
                             </Button>
-                          </Space>
-                        </div>
-                      ) : (
-                        <Space.Compact style={{ width: "100%" }}>
-                          <AntInput
-                            placeholder="Enter coupon code"
-                            value={couponCode}
-                            onChange={(e) =>
-                              setCouponCode(e.target.value.toUpperCase())
-                            }
-                            onPressEnter={() => handleApplyCoupon()}
-                          />
-                          <Button onClick={() => handleApplyCoupon()}>
-                            Apply
-                          </Button>
-                        </Space.Compact>
-                      )}
-
-                      {!appliedCoupon && (
-                        <Space
-                          direction="vertical"
-                          size={8}
-                          style={{ width: "100%", marginTop: 12 }}
-                        >
-                          {CART_COUPONS.map((c) => (
-                            <div
-                              key={c.code}
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                padding: 8,
-                                border: "1px solid #f0f0f0",
-                                borderRadius: 8,
-                              }}
-                            >
-                              <div style={{ minWidth: 0 }}>
-                                <Text strong style={{ fontSize: 13 }}>
-                                  {c.code}
-                                </Text>
-                                <div
-                                  style={{ fontSize: 11, color: "#8c8c8c" }}
-                                >
-                                  {c.description}
-                                </div>
-                              </div>
-                              <Button
-                                size="small"
-                                type="link"
-                                onClick={() => handleApplyCoupon(c.code)}
-                              >
-                                Apply
-                              </Button>
-                            </div>
-                          ))}
-                        </Space>
-                      )}
-                    </Card>
-
-                    <Card
-                      style={{ marginTop: 16 }}
-                      title="Order summary"
-                      styles={{ body: { padding: 16 } }}
-                    >
-                      <Space
-                        direction="vertical"
-                        size={10}
-                        style={{ width: "100%" }}
-                      >
-                        <Row justify="space-between">
-                          <Text type="secondary">
-                            Price ({totalQuantity} item
-                            {totalQuantity > 1 ? "s" : ""})
-                          </Text>
-                          <Text>{formatPrice(totals.mrpTotal, "INR")}</Text>
-                        </Row>
-                        {totals.productDiscount > 0 && (
-                          <Row justify="space-between">
-                            <Text type="secondary">Discount</Text>
-                            <Text style={{ color: "#52c41a" }}>
-                              − {formatPrice(totals.productDiscount, "INR")}
-                            </Text>
-                          </Row>
-                        )}
-                        {totals.couponDiscount > 0 && (
-                          <Row justify="space-between">
-                            <Text type="secondary">
-                              Coupon ({appliedCoupon?.code})
-                            </Text>
-                            <Text style={{ color: "#52c41a" }}>
-                              − {formatPrice(totals.couponDiscount, "INR")}
-                            </Text>
-                          </Row>
-                        )}
-                        <Row justify="space-between">
-                          <Text type="secondary">Delivery</Text>
-                          <Text
-                            style={
-                              totals.shipping === 0
-                                ? { color: "#52c41a" }
-                                : undefined
-                            }
-                          >
-                            {totals.shipping === 0
-                              ? "FREE"
-                              : formatPrice(totals.shipping, "INR")}
-                          </Text>
-                        </Row>
-                        <Divider style={{ margin: "4px 0" }} />
-                        <Row justify="space-between" align="middle">
-                          <Title level={5} style={{ margin: 0 }}>
-                            Total
-                          </Title>
-                          <Title level={4} style={{ margin: 0 }}>
-                            {formatPrice(totals.total, "INR")}
-                          </Title>
-                        </Row>
-                        {totals.productDiscount + totals.couponDiscount > 0 && (
-                          <Text style={{ color: "#52c41a", fontSize: 12 }}>
-                            You save{" "}
-                            {formatPrice(
-                              totals.productDiscount + totals.couponDiscount,
-                              "INR"
-                            )}{" "}
-                            on this order
-                          </Text>
-                        )}
+                          </div>
+                        ))}
                       </Space>
+                    </>
+                  )}
+                </Card>
 
-                      <Button
-                        block
-                        size="large"
-                        style={{ marginTop: 16 }}
-                        onClick={handleCheckout}
-                        disabled={totalQuantity === 0}
-                      >
-                        Place order
-                      </Button>
+                <Card
+                  style={{ marginTop: 16 }}
+                  title="Order summary"
+                  styles={{ body: { padding: 16 } }}
+                >
+                  <Space direction="vertical" size={10} style={{ width: "100%" }}>
+                    <Row justify="space-between">
+                      <Text type="secondary">
+                        Price ({totals.totalQuantity} item{totals.totalQuantity > 1 ? "s" : ""})
+                      </Text>
+                      <Text>{formatPrice(totals.mrpTotal, "INR")}</Text>
+                    </Row>
+                    {totals.productDiscount > 0 && (
+                      <Row justify="space-between">
+                        <Text type="secondary">Discount</Text>
+                        <Text style={{ color: "#52c41a" }}>
+                          − {formatPrice(totals.productDiscount, "INR")}
+                        </Text>
+                      </Row>
+                    )}
+                    {totals.couponDiscount > 0 && (
+                      <Row justify="space-between">
+                        <Text type="secondary">Coupon ({appliedCoupon?.code})</Text>
+                        <Text style={{ color: "#52c41a" }}>
+                          − {formatPrice(totals.couponDiscount, "INR")}
+                        </Text>
+                      </Row>
+                    )}
+                    <Row justify="space-between">
+                      <Text type="secondary">Delivery</Text>
+                      <Text style={totals.shipping === 0 ? { color: "#52c41a" } : undefined}>
+                        {totals.shipping === 0 ? "FREE" : formatPrice(totals.shipping, "INR")}
+                      </Text>
+                    </Row>
+                    <Divider style={{ margin: "4px 0" }} />
+                    <Row justify="space-between" align="middle">
+                      <Title level={5} style={{ margin: 0 }}>
+                        Total
+                      </Title>
+                      <Title level={4} style={{ margin: 0 }}>
+                        {formatPrice(totals.total, "INR")}
+                      </Title>
+                    </Row>
+                    {totals.totalSavings > 0 && (
+                      <Text style={{ color: "#52c41a", fontSize: 12 }}>
+                        You save {formatPrice(totals.totalSavings, "INR")} on this order
+                      </Text>
+                    )}
+                  </Space>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          marginTop: 12,
-                          color: "#8c8c8c",
-                          fontSize: 12,
-                        }}
-                      >
-                        <SafetyCertificateOutlined />
-                        <span>Safe and secure payments</span>
-                      </div>
-                    </Card>
+                  <Button
+                    block
+                    style={{ marginTop: 16 }}
+                    disabled={busy || totals.totalQuantity === 0}
+                    onClick={handleCheckout}
+                  >
+                    Place order
+                  </Button>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      marginTop: 12,
+                      color: "#8c8c8c",
+                      fontSize: 12,
+                    }}
+                  >
+                    <SafetyCertificateOutlined />
+                    <span>Safe and secure payments</span>
                   </div>
-                </Affix>
-              </Col>
-            </Row>
-          )}
-        </div>
+                </Card>
+              </div>
+            </Affix>
+          </Col>
+        </Row>
+      )}
     </AppLayout>
   );
 }

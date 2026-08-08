@@ -28,6 +28,13 @@ export const PRODUCT_ENDPOINTS = {
     UPDATE_STATUS: (id: number | string) => `/product/${id}/status`,
 };
 
+export const CART_ENDPOINTS = {
+    LIST: "/cart",
+    ADD: "/cart",
+    CLEAR: "/cart",
+    ITEM: (productId: number | string) => `/cart/${productId}`,
+};
+
 export const USER_ENDPOINTS = {
     LIST: "/user",
     CREATE: "/user",
@@ -42,6 +49,7 @@ export const QUERY_KEYS = {
     PRODUCT_LIST: (params: unknown) => ["products", "list", params],
     PRODUCT_FEED: (params: unknown) => ["products", "feed", params],
     PRODUCT_DETAIL: (id: number | string) => ["products", "detail", id],
+    CART: ["cart"],
     USERS: ["users"],
     USER_LIST: (params: unknown) => ["users", "list", params],
 };

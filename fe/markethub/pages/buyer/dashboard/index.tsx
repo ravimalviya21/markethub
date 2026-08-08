@@ -13,6 +13,7 @@ import {
   useProductFeed,
 } from "@/services/product.service";
 import { fetchCategories } from "@/services/category.service";
+import { useCartActions } from "@/hooks/useCartActions";
 import serverApi from "@/server/api";
 import { QUERY_KEYS } from "@/contants/endPoints";
 import { DASHBOARD_BANNERS, BRAND_HIGHLIGHTS } from "@/utils/dummy";
@@ -98,13 +99,14 @@ export const getStaticProps = (async () => {
 
 export default function BuyerDashboardPage() {
   const router = useRouter();
+  const { addProductToCart, cartCount } = useCartActions();
 
   const deals = useProductFeed(DEALS_FEED, { staleTime: FEED_STALE_TIME });
   const trending = useProductFeed(TRENDING_FEED, { staleTime: FEED_STALE_TIME });
   const popular = useProductFeed(POPULAR_FEED, { staleTime: FEED_STALE_TIME });
 
   const openProduct = (product: Product) => router.push(`/buyer/product/${product.id}`);
-  const addToCart = (product: Product) => console.log("add to cart:", product.id);
+  const addToCart = (product: Product) => addProductToCart(product.id, product.name);
   const toggleWishlist = (product: Product) => console.log("wishlist:", product.id);
 
   const railHandlers = {
@@ -117,7 +119,7 @@ export default function BuyerDashboardPage() {
   return (
     <AppLayout
       contentStyle={{ padding: 0, maxWidth: "none" }}
-      cartCount={0}
+      cartCount={cartCount}
       onCartClick={() => router.push("/account/cart")}
       onSearch={(term) => router.push(`/buyer/products?q=${encodeURIComponent(term)}`)}
       onChangeLocation={(loc) => console.log("location:", loc)}

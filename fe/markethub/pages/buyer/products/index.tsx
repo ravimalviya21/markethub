@@ -11,6 +11,7 @@ import { Crumb, categoryCrumbs } from "@/components/ui/Breadcrumbs";
 import { ProductFilterPatch } from "@/components/ui/ProductFilter";
 import { fetchCategories, useCategories } from "@/services/category.service";
 import { Product, fetchProducts, useProductFeed, useProducts } from "@/services/product.service";
+import { useCartActions } from "@/hooks/useCartActions";
 import serverApi from "@/server/api";
 import { QUERY_KEYS } from "@/contants/endPoints";
 import {
@@ -64,6 +65,7 @@ export const getStaticProps = (async () => {
 export default function BuyerProductsPage() {
   const router = useRouter();
   const { message } = App.useApp();
+  const { addProductToCart, cartCount } = useCartActions();
 
   const { sort, sortConfig, page, filters, isCurated } = parseProductListingQuery(router.query);
   const { search = "", categoryId, minPrice, maxPrice } = filters;
@@ -141,14 +143,14 @@ export default function BuyerProductsPage() {
   ];
 
   const openProduct = (product: Product) => router.push(`/buyer/product/${product.id}`);
-  const addToCart = (product: Product) => message.success(`${product.name} added to cart`);
+  const addToCart = (product: Product) => addProductToCart(product.id, product.name);
   const toggleWishlist = (product: Product) => message.info(`${product.name} saved for later`);
 
   return (
     <AppLayout
       contentStyle={{ maxWidth: WIDE_CONTENT_MAX_WIDTH }}
       maxWidth={WIDE_CONTENT_MAX_WIDTH}
-      cartCount={0}
+      cartCount={cartCount}
       onCartClick={() => router.push("/account/cart")}
       onSearch={(term) => applyQuery({ q: term.trim() || undefined })}
       onCategorySelect={(category) => applyQuery({ categoryId: category.id, q: undefined })}

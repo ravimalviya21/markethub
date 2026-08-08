@@ -40,6 +40,7 @@ import {
   useProductFeed,
 } from "@/services/product.service";
 import serverApi from "@/server/api";
+import { useCartActions } from "@/hooks/useCartActions";
 import { QUERY_KEYS } from "@/contants/endPoints";
 import {
   DELIVERY_HIGHLIGHTS,
@@ -207,6 +208,7 @@ export const getServerSideProps = (async ({ params }) => {
 export default function BuyerProductDetailPage() {
   const router = useRouter();
   const { message } = App.useApp();
+  const { addProductToCart, cartCount } = useCartActions();
   const id = firstValue(router.query.id);
 
   const { data: product, isLoading, error } = useProduct(id);
@@ -233,12 +235,12 @@ export default function BuyerProductDetailPage() {
   const discount = product ? computeDiscount(product.price, product.mrp) : null;
 
   const openProduct = (item: Product) => router.push(`/buyer/product/${item.id}`);
-  const addToCart = (quantity: number) => {
+  const addToCart = async (quantity: number) => {
     if (!product) return;
-    message.success(`${quantity} × ${product.name} added to cart`);
+    await addProductToCart(product.id, product.name, quantity);
   };
-  const buyNow = (quantity: number) => {
-    addToCart(quantity);
+  const buyNow = async (quantity: number) => {
+    await addToCart(quantity);
     router.push("/account/cart");
   };
 
@@ -252,7 +254,7 @@ export default function BuyerProductDetailPage() {
   return (
     <AppLayout
       contentStyle={{ maxWidth: CONTENT_MAX_WIDTH }}
-      cartCount={0}
+      cartCount={cartCount}
       onCartClick={() => router.push("/account/cart")}
       onSearch={(term) => router.push(`/buyer/products?q=${encodeURIComponent(term)}`)}
       onCategorySelect={(category) => router.push(`/buyer/products?categoryId=${category.id}`)}
@@ -442,7 +444,7 @@ export default function BuyerProductDetailPage() {
                 emptyText="No similar products yet"
                 onViewAll={() => router.push(`/buyer/products?categoryId=${product.categoryId}`)}
                 onProductClick={openProduct}
-                onAddToCart={(item) => message.success(`${item.name} added to cart`)}
+                onAddToCart={(item) => addProductToCart(item.id, item.name)}
                 onToggleWishlist={(item) => message.info(`${item.name} saved for later`)}
               />
             </div>
