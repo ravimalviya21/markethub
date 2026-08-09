@@ -79,6 +79,16 @@ const CartModel = {
         return result.affectedRows;
     },
 
+    async removeMany(userId: number, productIds: number[]): Promise<number> {
+        if (!productIds.length) return 0;
+        const placeholders = productIds.map(() => "?").join(", ");
+        const [result] = await pool.query<ResultSetHeader>(
+            `DELETE FROM cart_items WHERE userId = ? AND productId IN (${placeholders})`,
+            [userId, ...productIds]
+        );
+        return result.affectedRows;
+    },
+
     async clear(userId: number): Promise<number> {
         const [result] = await pool.execute<ResultSetHeader>(
             `DELETE FROM cart_items WHERE userId = ?`,

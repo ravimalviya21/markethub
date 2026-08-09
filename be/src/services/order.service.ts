@@ -3,6 +3,7 @@ import { AppError } from "../utils/errors";
 import STATUS_CODES from "../contants/statusCode";
 import OrderModel, { ListFilters, NewOrder, NewOrderItem } from "../models/order.model";
 import ProductModel from "../models/product.model";
+import CartModel from "../models/cart.model";
 import { AuthUser, OrderRow, OrderStatus, ProductRow, UserRole } from "../types/models";
 import { ListOrdersQuery, OrderItemInput, ShippingAddressInput } from "../validations/order.validation";
 
@@ -24,8 +25,8 @@ interface UpdateStatusInput {
     role: UserRole;
 }
 
-const FLAT_SHIPPING_COST = 5;
-const FREE_SHIPPING_THRESHOLD = 50;
+const FLAT_SHIPPING_COST = 49;
+const FREE_SHIPPING_THRESHOLD = 999;
 const TAX_RATE = 0.08;
 
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
@@ -127,7 +128,23 @@ const OrderService = {
         }
 
         const created = await OrderModel.saveMany(orders, userId);
-        return { orders: created };
+        await CartModel.removeMany(userId, items.map((item) => item.productId));
+
+        const byNumber = new Map(orders.map((order) => [order.orderNumber, order]));
+        return {
+            orders: created.map((order) => {
+                const priced = byNumber.get(order.orderNumber);
+                return {
+                    ...order,
+                    sellerId: priced?.sellerId,
+                    itemCount: priced?.items.length ?? 0,
+                    subtotal: priced?.subtotal ?? 0,
+                    shippingCost: priced?.shippingCost ?? 0,
+                    tax: priced?.tax ?? 0,
+                    total: priced?.total ?? 0,
+                };
+            }),
+        };
     },
 
     async updateStatus({ id, status, userId, role }: UpdateStatusInput) {

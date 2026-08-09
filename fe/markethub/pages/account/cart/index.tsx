@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import {
@@ -9,7 +9,6 @@ import {
   Col,
   Divider,
   Empty,
-  Input as AntInput,
   Row,
   Skeleton,
   Space,
@@ -22,7 +21,6 @@ import {
   PlusOutlined,
   SafetyCertificateOutlined,
   ShoppingOutlined,
-  TagOutlined,
 } from "@ant-design/icons";
 
 import AppLayout from "@/components/layout/AppLayout";
@@ -37,7 +35,8 @@ import {
   useRemoveCartItem,
   useUpdateCartItem,
 } from "@/services/cart.service";
-import { CART_COUPONS, Coupon, computeCartTotals } from "@/utils/cart";
+import { computeCheckoutPricing } from "@/utils/checkout";
+import { TAX_RATE } from "@/contants/checkout";
 import { CONTENT_MAX_WIDTH } from "@/contants/layout";
 import { computeDiscount, formatPrice, getApiErrorMessage } from "@/utils/customMethods";
 
@@ -178,19 +177,16 @@ export default function BuyerCartPage() {
   const { modal, message } = App.useApp();
   const { status, isAuthenticated } = useSession();
 
-  const [couponCode, setCouponCode] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
-
   const { data: cart, isLoading, error } = useBuyerCart();
   const updateItem = useUpdateCartItem();
   const removeItem = useRemoveCartItem();
   const clearCart = useClearCart();
 
-  const items = cart?.items ?? [];
+  const items = useMemo(() => cart?.items ?? [], [cart]);
   const summary = cart?.summary;
   const busy = updateItem.isPending || removeItem.isPending || clearCart.isPending;
 
-  const totals = useMemo(() => computeCartTotals(summary, appliedCoupon), [summary, appliedCoupon]);
+  const totals = useMemo(() => computeCheckoutPricing(items), [items]);
 
   const runMutation = async (action: Promise<unknown>, successText?: string) => {
     try {
@@ -224,34 +220,12 @@ export default function BuyerCartPage() {
       onOk: () => runMutation(clearCart.mutateAsync(), "Cart emptied"),
     });
 
-  const handleApplyCoupon = (code?: string) => {
-    const trimmed = (code || couponCode).trim().toUpperCase();
-    if (!trimmed) {
-      message.warning("Enter a coupon code");
-      return;
-    }
-    const match = CART_COUPONS.find((coupon) => coupon.code === trimmed);
-    if (!match) {
-      message.error("Invalid coupon code");
-      return;
-    }
-    if (match.minOrder && totals.subtotal < match.minOrder) {
-      message.warning(
-        `Add ${formatPrice(match.minOrder - totals.subtotal, "INR")} more to use ${match.code}`
-      );
-      return;
-    }
-    setAppliedCoupon(match);
-    setCouponCode(match.code);
-    message.success(`${match.code} applied`);
-  };
-
   const handleCheckout = () => {
     if (!totals.totalQuantity) {
       message.warning("No items available to checkout");
       return;
     }
-    message.info("Checkout is coming soon");
+    router.push("/account/checkout");
   };
 
   const crumbs: Crumb[] = [
@@ -367,97 +341,8 @@ export default function BuyerCartPage() {
           <Col xs={24} lg={9}>
             <Affix offsetTop={24}>
               <div>
-                <Card
-                  title={
-                    <Space>
-                      <TagOutlined />
-                      <span>Coupons</span>
-                    </Space>
-                  }
-                  styles={{ body: { padding: 16 } }}
-                >
-                  {appliedCoupon ? (
-                    <div
-                      style={{
-                        padding: 12,
-                        border: "1px dashed #52c41a",
-                        borderRadius: 8,
-                        background: "#f6ffed",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 8,
-                      }}
-                    >
-                      <div style={{ minWidth: 0 }}>
-                        <Text strong style={{ color: "#389e0d" }}>
-                          {appliedCoupon.code}
-                        </Text>
-                        <div style={{ fontSize: 12, color: "#595959" }}>
-                          {appliedCoupon.description}
-                        </div>
-                      </div>
-                      <Button
-                        size="small"
-                        type="text"
-                        danger
-                        onClick={() => {
-                          setAppliedCoupon(null);
-                          setCouponCode("");
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <Space.Compact style={{ width: "100%" }}>
-                        <AntInput
-                          placeholder="Enter coupon code"
-                          value={couponCode}
-                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                          onPressEnter={() => handleApplyCoupon()}
-                        />
-                        <Button onClick={() => handleApplyCoupon()}>Apply</Button>
-                      </Space.Compact>
-
-                      <Space direction="vertical" size={8} style={{ width: "100%", marginTop: 12 }}>
-                        {CART_COUPONS.map((coupon) => (
-                          <div
-                            key={coupon.code}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              padding: 8,
-                              border: "1px solid #f0f0f0",
-                              borderRadius: 8,
-                            }}
-                          >
-                            <div style={{ minWidth: 0 }}>
-                              <Text strong style={{ fontSize: 13 }}>
-                                {coupon.code}
-                              </Text>
-                              <div style={{ fontSize: 11, color: "#8c8c8c" }}>
-                                {coupon.description}
-                              </div>
-                            </div>
-                            <Button
-                              size="small"
-                              type="link"
-                              onClick={() => handleApplyCoupon(coupon.code)}
-                            >
-                              Apply
-                            </Button>
-                          </div>
-                        ))}
-                      </Space>
-                    </>
-                  )}
-                </Card>
 
                 <Card
-                  style={{ marginTop: 16 }}
                   title="Order summary"
                   styles={{ body: { padding: 16 } }}
                 >
@@ -476,19 +361,17 @@ export default function BuyerCartPage() {
                         </Text>
                       </Row>
                     )}
-                    {totals.couponDiscount > 0 && (
-                      <Row justify="space-between">
-                        <Text type="secondary">Coupon ({appliedCoupon?.code})</Text>
-                        <Text style={{ color: "#52c41a" }}>
-                          − {formatPrice(totals.couponDiscount, "INR")}
-                        </Text>
-                      </Row>
-                    )}
                     <Row justify="space-between">
                       <Text type="secondary">Delivery</Text>
-                      <Text style={totals.shipping === 0 ? { color: "#52c41a" } : undefined}>
-                        {totals.shipping === 0 ? "FREE" : formatPrice(totals.shipping, "INR")}
+                      <Text style={totals.shippingCost === 0 ? { color: "#52c41a" } : undefined}>
+                        {totals.shippingCost === 0
+                          ? "FREE"
+                          : formatPrice(totals.shippingCost, "INR")}
                       </Text>
+                    </Row>
+                    <Row justify="space-between">
+                      <Text type="secondary">Tax ({Math.round(TAX_RATE * 100)}%)</Text>
+                      <Text>{formatPrice(totals.tax, "INR")}</Text>
                     </Row>
                     <Divider style={{ margin: "4px 0" }} />
                     <Row justify="space-between" align="middle">
@@ -499,9 +382,9 @@ export default function BuyerCartPage() {
                         {formatPrice(totals.total, "INR")}
                       </Title>
                     </Row>
-                    {totals.totalSavings > 0 && (
+                    {totals.productDiscount > 0 && (
                       <Text style={{ color: "#52c41a", fontSize: 12 }}>
-                        You save {formatPrice(totals.totalSavings, "INR")} on this order
+                        You save {formatPrice(totals.productDiscount, "INR")} on this order
                       </Text>
                     )}
                   </Space>
@@ -512,7 +395,7 @@ export default function BuyerCartPage() {
                     disabled={busy || totals.totalQuantity === 0}
                     onClick={handleCheckout}
                   >
-                    Place order
+                    Proceed to checkout
                   </Button>
 
                   <div
