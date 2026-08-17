@@ -6,6 +6,7 @@ const STATUS_CODES = Object.freeze({
     FORBIDDEN: 403,
     NOT_FOUND: 404,
     CONFLICT: 409,
+    SERVICE_UNAVAILABLE: 503,
 });
 
 export default STATUS_CODES;

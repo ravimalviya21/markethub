@@ -4,7 +4,9 @@ import STATUS_CODES from "../contants/statusCode";
 import OrderModel, { ListFilters, NewOrder, NewOrderItem } from "../models/order.model";
 import ProductModel from "../models/product.model";
 import CartModel from "../models/cart.model";
-import { AuthUser, OrderRow, OrderStatus, ProductRow, UserRole } from "../types/models";
+import PaymentService from "./payment.service";
+import { isRazorpayConfigured } from "../config/razorpay";
+import { AuthUser, OrderRow, OrderStatus, PaymentMethod, ProductRow, UserRole } from "../types/models";
 import { ListOrdersQuery, OrderItemInput, ShippingAddressInput } from "../validations/order.validation";
 
 interface Viewer {
@@ -15,6 +17,7 @@ interface Viewer {
 interface CreateInput {
     items: OrderItemInput[];
     shippingAddress: ShippingAddressInput;
+    paymentMethod: PaymentMethod;
     userId: number;
 }
 
@@ -111,7 +114,14 @@ const scopeFor = (viewer: Viewer, query: ListOrdersQuery): Pick<ListFilters, "bu
 };
 
 const OrderService = {
-    async create({ items, shippingAddress, userId }: CreateInput) {
+    async create({ items, shippingAddress, paymentMethod, userId }: CreateInput) {
+        if (paymentMethod === "razorpay" && !isRazorpayConfigured()) {
+            throw new AppError(
+                "Online payments are not configured on this server",
+                STATUS_CODES.SERVICE_UNAVAILABLE
+            );
+        }
+
         const resolved = await resolveItems(items, userId);
         const grouped = groupBySeller(resolved);
 
@@ -128,23 +138,44 @@ const OrderService = {
         }
 
         const created = await OrderModel.saveMany(orders, userId);
-        await CartModel.removeMany(userId, items.map((item) => item.productId));
 
         const byNumber = new Map(orders.map((order) => [order.orderNumber, order]));
-        return {
-            orders: created.map((order) => {
-                const priced = byNumber.get(order.orderNumber);
-                return {
-                    ...order,
-                    sellerId: priced?.sellerId,
-                    itemCount: priced?.items.length ?? 0,
-                    subtotal: priced?.subtotal ?? 0,
-                    shippingCost: priced?.shippingCost ?? 0,
-                    tax: priced?.tax ?? 0,
-                    total: priced?.total ?? 0,
-                };
-            }),
-        };
+        const summaries = created.map((order) => {
+            const priced = byNumber.get(order.orderNumber);
+            return {
+                ...order,
+                sellerId: priced?.sellerId,
+                itemCount: priced?.items.length ?? 0,
+                subtotal: priced?.subtotal ?? 0,
+                shippingCost: priced?.shippingCost ?? 0,
+                tax: priced?.tax ?? 0,
+                total: priced?.total ?? 0,
+            };
+        });
+
+        if (paymentMethod !== "razorpay") {
+            await CartModel.removeMany(userId, items.map((item) => item.productId));
+            return { orders: summaries, paymentMethod, payment: null };
+        }
+
+        try {
+            const payment = await PaymentService.createIntent({
+                orders: summaries,
+                userId,
+                receipt: summaries[0]?.orderNumber ?? `ORD-${Date.now()}`,
+            });
+            return { orders: summaries, paymentMethod, payment };
+        } catch (err) {
+            for (const order of created) {
+                await OrderModel.updateStatus({
+                    id: order.id,
+                    status: "cancelled",
+                    userId,
+                    restoreStock: true,
+                });
+            }
+            throw err;
+        }
     },
 
     async updateStatus({ id, status, userId, role }: UpdateStatusInput) {

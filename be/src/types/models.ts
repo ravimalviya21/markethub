@@ -94,6 +94,24 @@ export interface ShippingAddress {
     country: string;
 }
 
+export type PaymentStatus = "pending" | "succeeded" | "failed" | "refunded";
+
+export type PaymentMethod = "cod" | "razorpay";
+
+export interface PaymentRecordRow {
+    id: number;
+    orderId: number;
+    provider: string;
+    razorpayOrderId: string;
+    razorpayPaymentId: string | null;
+    razorpaySignature: string | null;
+    amount: number;
+    currency: string;
+    status: PaymentStatus;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 export interface CartItemRow {
     id: number;
     userId: number;

@@ -34,15 +34,18 @@ import { Breadcrumbs, Button, Input } from "@/components/ui";
 import { Crumb } from "@/components/ui/Breadcrumbs";
 import { useSession } from "@/config/session";
 import { useBuyerCart } from "@/services/cart.service";
-import { CreatedOrder, useCreateOrder } from "@/services/order.service";
+import { CreatedOrder, PaymentMethod, useCreateOrder } from "@/services/order.service";
 import {
   CHECKOUT_STEPS,
   INDIAN_STATES,
   PAYMENT_OPTIONS,
-  PaymentMethod,
+  RAZORPAY_BRAND_NAME,
+  RAZORPAY_THEME_COLOR,
   SHIPPING_ADDRESS_STORAGE_KEY,
   TAX_RATE,
 } from "@/contants/checkout";
+import { openRazorpayCheckout } from "@/config/razorpay";
+import { usePaymentConfig, useFailPayment, useVerifyPayment } from "@/services/payment.service";
 import { CONTENT_MAX_WIDTH } from "@/contants/layout";
 import { computeCheckoutPricing, toOrderItems } from "@/utils/checkout";
 import {
@@ -86,11 +89,18 @@ export default function CheckoutPage() {
 
   const [step, setStep] = useState(0);
   const [address, setAddress] = useState<ShippingAddressFormValues | null>(null);
-  const [payment, setPayment] = useState<PaymentMethod>("cod");
+  const [payment, setPayment] = useState<PaymentMethod>("razorpay");
+  const [paying, setPaying] = useState(false);
   const [placedOrders, setPlacedOrders] = useState<CreatedOrder[] | null>(null);
 
   const { data: cart, isLoading, error } = useBuyerCart();
+  const { user } = useSession();
+  const { data: paymentConfig } = usePaymentConfig();
   const createOrder = useCreateOrder();
+  const verifyPayment = useVerifyPayment();
+  const failPayment = useFailPayment();
+
+  const onlineEnabled = paymentConfig?.enabled ?? false;
 
   const items = useMemo(() => cart?.items ?? [], [cart]);
   const pricing = useMemo(() => computeCheckoutPricing(items), [items]);
@@ -110,11 +120,21 @@ export default function CheckoutPage() {
     setAddress(values);
     try {
       window.localStorage.setItem(SHIPPING_ADDRESS_STORAGE_KEY, JSON.stringify(values));
-    } catch {
-      /* storage unavailable */
-    }
+    } catch {}
     setStep(1);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const settleSuccess = (orders: CreatedOrder[]) => {
+    setPlacedOrders(orders);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const abandonPayment = async (razorpayOrderId: string, note: string) => {
+    try {
+      await failPayment.mutateAsync({ razorpayOrderId });
+    } catch {}
+    message.warning(note);
   };
 
   const handlePlaceOrder = async () => {
@@ -125,15 +145,59 @@ export default function CheckoutPage() {
       return;
     }
 
+    const method: PaymentMethod = payment === "razorpay" && onlineEnabled ? "razorpay" : "cod";
+
+    setPaying(true);
     try {
       const result = await createOrder.mutateAsync({
         items: orderItems,
         shippingAddress: { ...address, line2: address.line2 || undefined },
+        paymentMethod: method,
       });
-      setPlacedOrders(result.orders);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      if (method === "cod" || !result.payment) {
+        settleSuccess(result.orders);
+        return;
+      }
+
+      const intent = result.payment;
+      const outcome = await openRazorpayCheckout({
+        key: intent.keyId,
+        amount: intent.amountInPaise,
+        currency: intent.currency,
+        name: RAZORPAY_BRAND_NAME,
+        description: `${result.orders.length} order${result.orders.length > 1 ? "s" : ""}`,
+        order_id: intent.razorpayOrderId,
+        prefill: {
+          name: address.fullName,
+          email: user?.email,
+          contact: address.phone,
+        },
+        theme: { color: RAZORPAY_THEME_COLOR },
+      });
+
+      if (outcome.status === "dismissed") {
+        await abandonPayment(intent.razorpayOrderId, "Payment cancelled, your order was not placed");
+        return;
+      }
+
+      if (outcome.status === "failed") {
+        await abandonPayment(intent.razorpayOrderId, outcome.reason);
+        return;
+      }
+
+      await verifyPayment.mutateAsync({
+        razorpayOrderId: outcome.response.razorpay_order_id,
+        razorpayPaymentId: outcome.response.razorpay_payment_id,
+        razorpaySignature: outcome.response.razorpay_signature,
+      });
+
+      message.success("Payment successful");
+      settleSuccess(result.orders);
     } catch (err) {
       message.error(getApiErrorMessage(err, "Could not place your order"));
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -203,7 +267,7 @@ export default function CheckoutPage() {
           ))}
           <Divider style={{ margin: "12px 0" }} />
           <Row justify="space-between">
-            <Text strong>Total paid on delivery</Text>
+            <Text strong>Total</Text>
             <Text strong>{formatPrice(grandTotal, "INR")}</Text>
           </Row>
         </Card>
@@ -414,28 +478,33 @@ export default function CheckoutPage() {
                       style={{ width: "100%" }}
                     >
                       <Space direction="vertical" size={12} style={{ width: "100%" }}>
-                        {PAYMENT_OPTIONS.map((option) => (
-                          <Radio
-                            key={option.value}
-                            value={option.value}
-                            disabled={option.disabled}
-                            style={{
-                              display: "block",
-                              padding: 12,
-                              border: "1px solid #f0f0f0",
-                              borderRadius: 8,
-                              width: "100%",
-                            }}
-                          >
-                            <Space size={8}>
-                              <Text strong>{option.label}</Text>
-                              {option.disabled && <Tag>Coming soon</Tag>}
-                            </Space>
-                            <div style={{ fontSize: 12, color: "#8c8c8c" }}>
-                              {option.description}
-                            </div>
-                          </Radio>
-                        ))}
+                        {PAYMENT_OPTIONS.map((option) => {
+                          const unavailable = option.value === "razorpay" && !onlineEnabled;
+                          return (
+                            <Radio
+                              key={option.value}
+                              value={option.value}
+                              disabled={unavailable}
+                              style={{
+                                display: "block",
+                                padding: 12,
+                                border: "1px solid #f0f0f0",
+                                borderRadius: 8,
+                                width: "100%",
+                              }}
+                            >
+                              <Space size={8}>
+                                <Text strong>{option.label}</Text>
+                                {unavailable && <Tag>Unavailable</Tag>}
+                              </Space>
+                              <div style={{ fontSize: 12, color: "#8c8c8c" }}>
+                                {unavailable
+                                  ? "Online payments are not configured on this server"
+                                  : option.description}
+                              </div>
+                            </Radio>
+                          );
+                        })}
                       </Space>
                     </Radio.Group>
                   </Card>
@@ -543,10 +612,12 @@ export default function CheckoutPage() {
                     <Button
                       block
                       style={{ marginTop: 16 }}
-                      loading={createOrder.isPending}
+                      loading={paying}
                       onClick={handlePlaceOrder}
                     >
-                      Place order
+                      {payment === "razorpay" && onlineEnabled
+                        ? `Pay ${formatPrice(pricing.total, "INR")}`
+                        : "Place order"}
                     </Button>
                   )}
 

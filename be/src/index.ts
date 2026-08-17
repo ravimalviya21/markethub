@@ -27,6 +27,7 @@ app.use(
         allowedHeaders: ["Content-Type", "Authorization"],
     })
 );
+app.use("/api/v1/payment/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(cookieParser());
 app.use(passport.initialize());

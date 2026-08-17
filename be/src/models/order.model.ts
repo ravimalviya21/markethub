@@ -195,6 +195,43 @@ const OrderModel = {
         }
     },
 
+    async applyStatus(
+        conn: PoolConnection,
+        {
+            id,
+            status,
+            userId,
+            restoreStock = false,
+            expectedStatus,
+        }: {
+            id: number;
+            status: OrderStatus;
+            userId: number;
+            restoreStock?: boolean;
+            expectedStatus?: OrderStatus;
+        }
+    ): Promise<number> {
+        const [result] = await conn.execute<ResultSetHeader>(
+            expectedStatus
+                ? `UPDATE orders SET status = ? WHERE id = ? AND status = ?`
+                : `UPDATE orders SET status = ? WHERE id = ?`,
+            expectedStatus ? [status, id, expectedStatus] : [status, id]
+        );
+        if (result.affectedRows > 0) {
+            if (restoreStock) {
+                await conn.execute(
+                    `UPDATE products p
+                    JOIN order_items oi ON oi.productId = p.id
+                    SET p.stock = p.stock + oi.quantity
+                    WHERE oi.orderId = ?`,
+                    [id]
+                );
+            }
+            await insertStatusHistory(conn, id, status, userId);
+        }
+        return result.affectedRows;
+    },
+
     async updateStatus({
         id,
         status,
@@ -209,30 +246,28 @@ const OrderModel = {
         const conn = await pool.getConnection();
         try {
             await conn.beginTransaction();
-            const [result] = await conn.execute<ResultSetHeader>(
-                `UPDATE orders SET status = ? WHERE id = ?`,
-                [status, id]
-            );
-            if (result.affectedRows > 0) {
-                if (restoreStock) {
-                    await conn.execute(
-                        `UPDATE products p
-                        JOIN order_items oi ON oi.productId = p.id
-                        SET p.stock = p.stock + oi.quantity
-                        WHERE oi.orderId = ?`,
-                        [id]
-                    );
-                }
-                await insertStatusHistory(conn, id, status, userId);
-            }
+            const affectedRows = await OrderModel.applyStatus(conn, {
+                id,
+                status,
+                userId,
+                restoreStock,
+            });
             await conn.commit();
-            return result.affectedRows;
+            return affectedRows;
         } catch (err) {
             await conn.rollback();
             throw err;
         } finally {
             conn.release();
         }
+    },
+
+    async findByIdWithin(conn: PoolConnection, id: number): Promise<OrderRow | null> {
+        const [rows] = await conn.execute<(OrderRow & RowDataPacket)[]>(
+            `SELECT * FROM orders WHERE id = ?`,
+            [id]
+        );
+        return rows[0] ? normalizeOrder(rows[0]) : null;
     },
 
     async findById(id: number): Promise<OrderRow | null> {

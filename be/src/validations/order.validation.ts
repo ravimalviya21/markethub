@@ -24,6 +24,8 @@ const orderItemSchema = z.object({
     quantity: z.number().int().positive().max(100),
 });
 
+export const PAYMENT_METHODS = ["cod", "razorpay"] as const;
+
 export const createOrderSchema = z.object({
     items: z
         .array(orderItemSchema)
@@ -34,6 +36,7 @@ export const createOrderSchema = z.object({
             { message: "A product can only appear once in an order" }
         ),
     shippingAddress: shippingAddressSchema,
+    paymentMethod: z.enum(PAYMENT_METHODS).optional().default("cod"),
 });
 
 export const updateOrderStatusSchema = z.object({

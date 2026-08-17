@@ -8,6 +8,7 @@ import {
 import { AxiosError } from "axios";
 import axiosInstance from "@/config/axios";
 import { ORDER_ENDPOINTS, QUERY_KEYS } from "@/contants/endPoints";
+import { PaymentIntent } from "@/services/payment.service";
 
 export const ORDER_STATUSES = [
     "pending",
@@ -35,9 +36,12 @@ export interface OrderItemPayload {
     quantity: number;
 }
 
+export type PaymentMethod = "cod" | "razorpay";
+
 export interface CreateOrderPayload {
     items: OrderItemPayload[];
     shippingAddress: ShippingAddress;
+    paymentMethod: PaymentMethod;
 }
 
 export interface CreatedOrder {
@@ -53,6 +57,8 @@ export interface CreatedOrder {
 
 export interface CreateOrderResponse {
     orders: CreatedOrder[];
+    paymentMethod: PaymentMethod;
+    payment: PaymentIntent | null;
 }
 
 export interface Order {
@@ -96,8 +102,13 @@ const normalizeAmounts = <T extends { subtotal: number; shippingCost: number; ta
 
 const createOrderApi = async (payload: CreateOrderPayload): Promise<CreateOrderResponse> => {
     const res = await axiosInstance.post(ORDER_ENDPOINTS.CREATE, payload);
-    const orders = res.data?.data?.orders ?? [];
-    return { orders: Array.isArray(orders) ? orders.map(normalizeAmounts) : [] };
+    const data = res.data?.data ?? {};
+    const orders = data.orders ?? [];
+    return {
+        orders: Array.isArray(orders) ? orders.map(normalizeAmounts) : [],
+        paymentMethod: data.paymentMethod ?? "cod",
+        payment: data.payment ?? null,
+    };
 };
 
 const listOrdersApi = async (params: OrderListParams): Promise<OrderListResponse> => {

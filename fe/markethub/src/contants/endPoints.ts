@@ -35,6 +35,12 @@ export const ORDER_ENDPOINTS = {
     UPDATE_STATUS: (id: number | string) => `/order/${id}/status`,
 };
 
+export const PAYMENT_ENDPOINTS = {
+    CONFIG: "/payment/config",
+    VERIFY: "/payment/verify",
+    FAILED: "/payment/failed",
+};
+
 export const CART_ENDPOINTS = {
     LIST: "/cart",
     ADD: "/cart",
@@ -58,6 +64,7 @@ export const QUERY_KEYS = {
     PRODUCT_DETAIL: (id: number | string) => ["products", "detail", id],
     CART: ["cart"],
     ORDERS: ["orders"],
+    PAYMENT_CONFIG: ["payment", "config"],
     ORDER_LIST: (params: unknown) => ["orders", "list", params],
     ORDER_DETAIL: (id: number | string) => ["orders", "detail", id],
     USERS: ["users"],
